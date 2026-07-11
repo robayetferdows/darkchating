@@ -1181,6 +1181,365 @@ body {
   border-style: dashed;
 }
 
+/* ===== STORIES / STATUS ===== */
+.stories-bar {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg-tertiary);
+  scrollbar-width: none;
+}
+.stories-bar::-webkit-scrollbar { display: none; }
+.story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+.story-ring {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(var(--green-primary), var(--cyan-primary), var(--green-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.story-ring.no-story {
+  background: var(--border-color);
+}
+.story-ring.viewed {
+  background: var(--text-dim);
+}
+.story-ring .story-avatar {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 2px solid var(--bg-primary);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+.story-ring .story-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.story-item .story-name {
+  font-size: 9px;
+  color: var(--text-secondary);
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.story-item.add-story .story-ring {
+  background: none;
+  border: 2px dashed var(--green-dark);
+}
+.story-item.add-story .story-avatar {
+  border: none;
+  color: var(--green-primary);
+  font-size: 24px;
+}
+
+/* Story Viewer Fullscreen */
+.story-viewer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #000;
+  z-index: 5000;
+  display: none;
+  flex-direction: column;
+}
+.story-viewer.active { display: flex; }
+.story-viewer-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+}
+.story-viewer-header .sv-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+}
+.story-viewer-header .sv-avatar img { width:100%; height:100%; object-fit:cover; }
+.story-viewer-header .sv-info { flex: 1; }
+.story-viewer-header .sv-name {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
+}
+.story-viewer-header .sv-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+}
+.story-viewer-header .sv-close {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.story-progress-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  gap: 3px;
+  padding: 6px 12px;
+  z-index: 11;
+}
+.story-progress-bar .seg {
+  flex: 1; height: 3px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.story-progress-bar .seg .fill {
+  height: 100%;
+  background: #fff;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+.story-progress-bar .seg.done .fill { width: 100%; }
+.story-viewer-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.story-viewer-content img,
+.story-viewer-content video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.story-nav {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 35%;
+  z-index: 8;
+  cursor: pointer;
+}
+.story-nav.left { left: 0; }
+.story-nav.right { right: 0; }
+.story-music-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 14px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9;
+}
+.story-music-bar .music-icon { font-size: 18px; }
+.story-music-bar .music-info {
+  flex: 1;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.story-music-bar .music-title { color: #fff; font-weight: 600; }
+
+/* Story Upload Modal */
+.story-upload-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 4000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.story-upload-modal.active { display: flex; }
+.story-upload-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 30px;
+  width: 480px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.story-upload-box h3 {
+  color: var(--green-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.story-preview-zone {
+  width: 100%;
+  min-height: 200px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-input);
+}
+.story-preview-zone img,
+.story-preview-zone video {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 6px;
+}
+.story-preview-zone .placeholder {
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+}
+.story-preview-zone .placeholder span { font-size: 40px; display: block; margin-bottom: 8px; }
+.music-search-section {
+  margin-bottom: 16px;
+}
+.music-search-section label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.music-search-wrap {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.music-search-wrap input {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+.music-search-wrap input:focus { border-color: var(--green-dim); }
+.music-search-wrap input::placeholder { color: var(--text-dim); }
+.music-platform-btns {
+  display: flex;
+  gap: 6px;
+}
+.music-platform-btns button {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.music-platform-btns button:hover { border-color: var(--green-dim); }
+.music-platform-btns button.active {
+  border-color: var(--green-primary);
+  color: var(--green-primary);
+  background: rgba(0,255,65,0.05);
+}
+.music-results {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  display: none;
+}
+.music-results.active { display: block; }
+.music-result-item {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--border-color);
+}
+.music-result-item:last-child { border-bottom: none; }
+.music-result-item:hover { background: rgba(0,255,65,0.04); }
+.music-result-item.selected {
+  background: rgba(0,255,65,0.08);
+  border-left: 3px solid var(--green-primary);
+}
+.music-result-item .mr-icon { font-size: 16px; }
+.music-result-item .mr-info { flex: 1; overflow: hidden; }
+.music-result-item .mr-title {
+  font-size: 11px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-result-item .mr-artist {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+.selected-music-tag {
+  display: none;
+  padding: 8px 12px;
+  background: rgba(0,255,65,0.05);
+  border: 1px solid var(--green-dark);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--green-primary);
+  margin-top: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+.selected-music-tag.active { display: flex; }
+.selected-music-tag .remove-music {
+  background: none; border: none;
+  color: var(--red-primary);
+  cursor: pointer;
+  font-size: 14px;
+}
+.story-upload-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.story-upload-actions button { flex: 1; }
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -1587,6 +1946,17 @@ body {
         </div>
       </div>
 
+      <!-- Stories / Status Bar -->
+      <div class="stories-bar" id="storiesBar">
+        <div class="story-item add-story" onclick="openStoryUpload()">
+          <div class="story-ring">
+            <div class="story-avatar">+</div>
+          </div>
+          <span class="story-name">Add Story</span>
+        </div>
+        <!-- Friend stories will be injected here -->
+      </div>
+
       <div class="sidebar-tabs">
         <button class="sidebar-tab active" id="tabFriends" onclick="switchSidebarTab('friends')">CONTACTS</button>
         <button class="sidebar-tab" id="tabRequests" onclick="switchSidebarTab('requests')">
@@ -1691,6 +2061,65 @@ body {
           <button class="send-btn" onclick="sendMessage()" id="sendMessageBtn" title="Send">▶</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- STORY VIEWER (fullscreen) -->
+<div class="story-viewer" id="storyViewer">
+  <div class="story-progress-bar" id="storyProgressBar"></div>
+  <div class="story-viewer-header">
+    <div class="sv-avatar" id="svAvatar">💀</div>
+    <div class="sv-info">
+      <div class="sv-name" id="svName">-</div>
+      <div class="sv-time" id="svTime">-</div>
+    </div>
+    <button class="sv-close" onclick="closeStoryViewer()">✕</button>
+  </div>
+  <div class="story-viewer-content" id="storyContent"></div>
+  <div class="story-nav left" onclick="prevStory()"></div>
+  <div class="story-nav right" onclick="nextStory()"></div>
+  <div class="story-music-bar" id="storyMusicBar" style="display:none;">
+    <span class="music-icon">🎵</span>
+    <div class="music-info"><span class="music-title" id="svMusicTitle">-</span></div>
+  </div>
+  <iframe id="storyMusicPlayer" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</div>
+
+<!-- STORY UPLOAD MODAL -->
+<div class="story-upload-modal" id="storyUploadModal">
+  <div class="story-upload-box">
+    <h3>📸 UPLOAD STORY</h3>
+    
+    <div class="story-preview-zone" id="storyPreviewZone" onclick="document.getElementById('storyFileInput').click()">
+      <div class="placeholder" id="storyPlaceholder">
+        <span>📷</span>
+        Tap to select photo or video<br>
+        <small style="color:var(--text-dim)">Max 15MB • Auto-deletes in 8 hours</small>
+      </div>
+    </div>
+    <input type="file" id="storyFileInput" accept="image/*,video/*" style="display:none" onchange="handleStoryFileSelect(event)">
+    
+    <!-- Music Search Section -->
+    <div class="music-search-section">
+      <label>> Add Background Music</label>
+      <div class="music-search-wrap">
+        <input type="text" id="musicSearchInput" placeholder="Search for a song..." onkeydown="if(event.key==='Enter') searchMusic()">
+        <div class="music-platform-btns">
+          <button id="btnYoutube" class="active" onclick="setMusicPlatform('youtube')">▶ YouTube</button>
+          <button id="btnSpotify" onclick="setMusicPlatform('spotify')">● Spotify</button>
+        </div>
+      </div>
+      <div class="music-results" id="musicResults"></div>
+      <div class="selected-music-tag" id="selectedMusicTag">
+        <span id="selectedMusicName">-</span>
+        <button class="remove-music" onclick="removeSelectedMusic()">✕</button>
+      </div>
+    </div>
+    
+    <div class="story-upload-actions">
+      <button class="auth-btn" style="background: var(--bg-input); border-color: var(--border-color); color: var(--text-secondary);" onclick="closeStoryUpload()">CANCEL</button>
+      <button class="auth-btn" onclick="publishStory()" id="publishStoryBtn" disabled>🚀 PUBLISH STORY</button>
     </div>
   </div>
 </div>
@@ -2247,6 +2676,7 @@ async function enterApp() {
   await loadContacts();
   await loadRequests();
   await loadAllUsers();
+  await loadStories();
   startSync();
   showToast(`Access granted: ${currentUser.username}`);
 }
@@ -3668,10 +4098,11 @@ function startSync() {
         await checkTypingStatus();
       }
 
-      // Silently refresh contacts and requests
+      // Silently refresh contacts, requests, and stories
       await loadContacts();
       await loadRequests();
       await loadAllUsers();
+      await loadStories();
 
       // Refresh current user data
       const freshUser = await fbGet(`users/${currentUser.username}`);
@@ -3957,6 +4388,536 @@ function initMatrix() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   });
+}
+
+// ============================================================
+// ---- STORIES / STATUS SYSTEM ----
+// ============================================================
+
+const STORY_EXPIRY_HOURS = 8;
+const STORY_DISPLAY_SECONDS = 7; // how long each story shows
+
+let storyUploadData = { file: null, type: null, data: null };
+let selectedMusic = null; // {platform, id, title, artist, embedUrl}
+let musicPlatform = 'youtube';
+let currentStoryView = { username: null, stories: [], index: 0 };
+let storyTimerInterval = null;
+let storyProgressStart = null;
+let friendStoriesCache = [];
+
+// ---- Story Upload ----
+function openStoryUpload() {
+  document.getElementById('storyUploadModal').classList.add('active');
+  resetStoryUpload();
+}
+
+function closeStoryUpload() {
+  document.getElementById('storyUploadModal').classList.remove('active');
+  resetStoryUpload();
+}
+
+function resetStoryUpload() {
+  storyUploadData = { file: null, type: null, data: null };
+  selectedMusic = null;
+  document.getElementById('storyPlaceholder').style.display = '';
+  document.getElementById('storyPreviewZone').innerHTML = `
+    <div class="placeholder" id="storyPlaceholder">
+      <span>📷</span>
+      Tap to select photo or video<br>
+      <small style="color:var(--text-dim)">Max 15MB • Auto-deletes in 8 hours</small>
+    </div>
+  `;
+  document.getElementById('musicResults').classList.remove('active');
+  document.getElementById('selectedMusicTag').classList.remove('active');
+  document.getElementById('musicSearchInput').value = '';
+  document.getElementById('publishStoryBtn').disabled = true;
+  document.getElementById('storyFileInput').value = '';
+}
+
+async function handleStoryFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (file.size > 15 * 1024 * 1024) {
+    showToast('File too large. Max 15MB.', true);
+    return;
+  }
+  
+  const isVideo = file.type.startsWith('video/');
+  const isImage = file.type.startsWith('image/');
+  if (!isVideo && !isImage) {
+    showToast('Only images and videos allowed', true);
+    return;
+  }
+  
+  showToast('Processing...');
+  
+  try {
+    let data;
+    if (isImage) {
+      data = await compressImage(file, 1080, 0.8);
+    } else {
+      data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read'));
+        reader.readAsDataURL(file);
+      });
+      if (data.length > 10 * 1024 * 1024) {
+        showToast('Video too large after processing. Try a shorter clip.', true);
+        return;
+      }
+    }
+    
+    storyUploadData = { file, type: isImage ? 'image' : 'video', data };
+    
+    const zone = document.getElementById('storyPreviewZone');
+    if (isImage) {
+      zone.innerHTML = `<img src="${data}" alt="Story preview">`;
+    } else {
+      zone.innerHTML = `<video src="${data}" controls muted style="max-height:300px;"></video>`;
+    }
+    
+    document.getElementById('publishStoryBtn').disabled = false;
+  } catch(e) {
+    showToast('Failed to process file', true);
+  }
+}
+
+// ---- Music Search (YouTube + Spotify via public endpoints) ----
+function setMusicPlatform(platform) {
+  musicPlatform = platform;
+  document.getElementById('btnYoutube').classList.toggle('active', platform === 'youtube');
+  document.getElementById('btnSpotify').classList.toggle('active', platform === 'spotify');
+  document.getElementById('musicResults').classList.remove('active');
+}
+
+async function searchMusic() {
+  const query = document.getElementById('musicSearchInput').value.trim();
+  if (!query) return;
+  
+  const results = document.getElementById('musicResults');
+  results.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
+  results.classList.add('active');
+  
+  try {
+    let items = [];
+    
+    if (musicPlatform === 'youtube') {
+      items = await searchYouTubeMusic(query);
+    } else {
+      items = await searchSpotifyMusic(query);
+    }
+    
+    if (items.length === 0) {
+      results.innerHTML = '<div style="padding:12px; text-align:center; color:var(--text-dim); font-size:11px;">No results found</div>';
+      return;
+    }
+    
+    results.innerHTML = items.map((item, i) => `
+      <div class="music-result-item" onclick="selectMusic(${i})" data-index="${i}">
+        <span class="mr-icon">${musicPlatform === 'youtube' ? '▶' : '●'}</span>
+        <div class="mr-info">
+          <div class="mr-title">${escapeHtml(item.title)}</div>
+          <div class="mr-artist">${escapeHtml(item.artist)} • ${escapeHtml(item.platform)}</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Store results for selection
+    results.dataset.items = JSON.stringify(items);
+    
+  } catch(e) {
+    results.innerHTML = `<div style="padding:12px; text-align:center; color:var(--red-primary); font-size:11px;">Search failed: ${e.message}</div>`;
+  }
+}
+
+// YouTube search via Invidious public API (no API key needed)
+async function searchYouTubeMusic(query) {
+  try {
+    const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(query + ' music')}&type=video&sort_by=relevance`);
+    if (!res.ok) throw new Error('YouTube search failed');
+    const data = await res.json();
+    return data.slice(0, 8).map(v => ({
+      platform: 'YouTube',
+      id: v.videoId,
+      title: v.title || 'Unknown',
+      artist: v.author || 'Unknown',
+      embedUrl: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&start=0&loop=1`
+    }));
+  } catch(e) {
+    // Fallback: let user paste a YouTube URL manually
+    return [{
+      platform: 'YouTube',
+      id: 'manual',
+      title: query,
+      artist: 'Search "' + query + '" on YouTube',
+      embedUrl: `https://www.youtube.com/embed/?listType=search&list=${encodeURIComponent(query)}&autoplay=1`
+    }];
+  }
+}
+
+// Spotify search via open embed (no API key needed for embed search)
+async function searchSpotifyMusic(query) {
+  // Spotify doesn't have a free public search API without OAuth,
+  // so we use the embed search approach
+  return [{
+    platform: 'Spotify',
+    id: 'search',
+    title: query,
+    artist: 'Play on Spotify',
+    embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator&theme=0`
+  },{
+    platform: 'Spotify',
+    id: 'track_search',
+    title: query + ' (Top Result)',
+    artist: 'Spotify Track',
+    embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator`
+  }];
+}
+
+function selectMusic(index) {
+  const results = document.getElementById('musicResults');
+  const items = JSON.parse(results.dataset.items || '[]');
+  if (!items[index]) return;
+  
+  selectedMusic = items[index];
+  
+  // Highlight selection
+  results.querySelectorAll('.music-result-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === index);
+  });
+  
+  // Show selected music tag
+  const tag = document.getElementById('selectedMusicTag');
+  document.getElementById('selectedMusicName').textContent = `🎵 ${selectedMusic.title} — ${selectedMusic.artist}`;
+  tag.classList.add('active');
+}
+
+function removeSelectedMusic() {
+  selectedMusic = null;
+  document.getElementById('selectedMusicTag').classList.remove('active');
+  document.querySelectorAll('.music-result-item').forEach(el => el.classList.remove('selected'));
+}
+
+// ---- Publish Story ----
+async function publishStory() {
+  if (!storyUploadData.data) {
+    showToast('Select a photo or video first', true);
+    return;
+  }
+  
+  const btn = document.getElementById('publishStoryBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ PUBLISHING...';
+  
+  try {
+    const story = {
+      type: storyUploadData.type,
+      media: storyUploadData.data,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + (STORY_EXPIRY_HOURS * 60 * 60 * 1000),
+      music: selectedMusic ? {
+        platform: selectedMusic.platform,
+        title: selectedMusic.title,
+        artist: selectedMusic.artist,
+        embedUrl: selectedMusic.embedUrl
+      } : null,
+      viewedBy: {}
+    };
+    
+    await fbPush(`stories/${currentUser.username}`, story);
+    
+    closeStoryUpload();
+    showToast('Story published! Visible for 8 hours.');
+    await loadStories();
+    
+  } catch(e) {
+    showToast('Failed to publish story: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 PUBLISH STORY';
+  }
+}
+
+// ---- Load & Render Stories ----
+async function loadStories() {
+  try {
+    // Clean up expired stories first
+    await cleanExpiredStories();
+    
+    // Get my friends list
+    const allFriends = await fbGet('friends') || {};
+    const friendUsernames = [];
+    
+    for (const [chatId, data] of Object.entries(allFriends)) {
+      if (data.status !== 'accepted') continue;
+      if (data.from !== currentUser.username && data.to !== currentUser.username) continue;
+      const friendName = data.from === currentUser.username ? data.to : data.from;
+      friendUsernames.push(friendName);
+    }
+    
+    // Get all stories
+    const allStories = await fbGet('stories') || {};
+    const now = Date.now();
+    
+    friendStoriesCache = [];
+    
+    // Check my own stories
+    const myStories = allStories[currentUser.username] || {};
+    const myActiveStories = Object.entries(myStories)
+      .filter(([id, s]) => s.expiresAt > now)
+      .map(([id, s]) => ({ id, ...s }))
+      .sort((a,b) => a.timestamp - b.timestamp);
+    
+    if (myActiveStories.length > 0) {
+      friendStoriesCache.push({
+        username: currentUser.username,
+        displayName: currentUser.displayName || currentUser.username,
+        avatar: currentUser.avatar || '',
+        stories: myActiveStories,
+        isOwn: true,
+        allViewed: myActiveStories.every(s => true) // own stories always "viewed"
+      });
+    }
+    
+    // Collect friend stories (only friends can see)
+    for (const friend of friendUsernames) {
+      const friendStories = allStories[friend] || {};
+      const active = Object.entries(friendStories)
+        .filter(([id, s]) => s.expiresAt > now)
+        .map(([id, s]) => ({ id, ...s }))
+        .sort((a,b) => a.timestamp - b.timestamp);
+      
+      if (active.length > 0) {
+        const friendData = allUsersCache[friend] || {};
+        const allViewed = active.every(s => s.viewedBy && s.viewedBy[currentUser.username]);
+        
+        friendStoriesCache.push({
+          username: friend,
+          displayName: friendData.displayName || friend,
+          avatar: friendData.avatar || '',
+          stories: active,
+          isOwn: false,
+          allViewed
+        });
+      }
+    }
+    
+    // Sort: unviewed first, then own, then viewed
+    friendStoriesCache.sort((a,b) => {
+      if (a.isOwn) return -1;
+      if (b.isOwn) return 1;
+      if (a.allViewed !== b.allViewed) return a.allViewed ? 1 : -1;
+      return b.stories[b.stories.length-1].timestamp - a.stories[a.stories.length-1].timestamp;
+    });
+    
+    renderStoriesBar();
+    
+  } catch(e) {
+    console.warn('Failed to load stories:', e);
+  }
+}
+
+function renderStoriesBar() {
+  const bar = document.getElementById('storiesBar');
+  
+  let html = `
+    <div class="story-item add-story" onclick="openStoryUpload()">
+      <div class="story-ring">
+        <div class="story-avatar">+</div>
+      </div>
+      <span class="story-name">Add Story</span>
+    </div>
+  `;
+  
+  for (const entry of friendStoriesCache) {
+    const ringClass = entry.isOwn ? '' : (entry.allViewed ? 'viewed' : '');
+    const avatarContent = entry.avatar && (entry.avatar.startsWith('data:') || entry.avatar.startsWith('http'))
+      ? `<img src="${entry.avatar}" alt="">`
+      : (entry.displayName[0] || '?').toUpperCase();
+    const name = entry.isOwn ? 'Your Story' : entry.displayName;
+    
+    html += `
+      <div class="story-item" onclick="openStoryViewer('${entry.username}')">
+        <div class="story-ring ${ringClass}">
+          <div class="story-avatar">${avatarContent}</div>
+        </div>
+        <span class="story-name">${escapeHtml(name)}</span>
+      </div>
+    `;
+  }
+  
+  bar.innerHTML = html;
+}
+
+async function cleanExpiredStories() {
+  try {
+    const allStories = await fbGet('stories') || {};
+    const now = Date.now();
+    
+    for (const [username, stories] of Object.entries(allStories)) {
+      if (!stories || typeof stories !== 'object') continue;
+      for (const [storyId, story] of Object.entries(stories)) {
+        if (story.expiresAt && story.expiresAt <= now) {
+          await fbDelete(`stories/${username}/${storyId}`);
+        }
+      }
+    }
+  } catch(e) {
+    console.warn('Cleanup failed:', e);
+  }
+}
+
+// ---- Story Viewer ----
+function openStoryViewer(username) {
+  const entry = friendStoriesCache.find(e => e.username === username);
+  if (!entry || entry.stories.length === 0) return;
+  
+  currentStoryView = { username, stories: entry.stories, index: 0, entry };
+  
+  const viewer = document.getElementById('storyViewer');
+  viewer.classList.add('active');
+  
+  renderCurrentStory();
+}
+
+function closeStoryViewer() {
+  const viewer = document.getElementById('storyViewer');
+  viewer.classList.remove('active');
+  
+  clearStoryTimer();
+  
+  // Stop music
+  document.getElementById('storyMusicPlayer').src = '';
+  document.getElementById('storyMusicBar').style.display = 'none';
+  
+  currentStoryView = { username: null, stories: [], index: 0 };
+  loadStories(); // Refresh viewed status
+}
+
+async function renderCurrentStory() {
+  const { stories, index, entry } = currentStoryView;
+  if (index < 0 || index >= stories.length) {
+    closeStoryViewer();
+    return;
+  }
+  
+  const story = stories[index];
+  
+  // Header
+  const avatarContent = entry.avatar && (entry.avatar.startsWith('data:') || entry.avatar.startsWith('http'))
+    ? `<img src="${entry.avatar}" alt="">` : (entry.displayName[0] || '?').toUpperCase();
+  document.getElementById('svAvatar').innerHTML = avatarContent;
+  document.getElementById('svName').textContent = entry.displayName;
+  document.getElementById('svTime').textContent = formatTime(story.timestamp);
+  
+  // Progress bar
+  const progressHtml = stories.map((s, i) => {
+    const cls = i < index ? 'done' : '';
+    return `<div class="seg ${cls}" data-seg="${i}"><div class="fill"></div></div>`;
+  }).join('');
+  document.getElementById('storyProgressBar').innerHTML = progressHtml;
+  
+  // Content
+  const content = document.getElementById('storyContent');
+  if (story.type === 'image') {
+    content.innerHTML = `<img src="${story.media}" alt="Story">`;
+  } else {
+    content.innerHTML = `<video src="${story.media}" autoplay muted playsinline></video>`;
+  }
+  
+  // Music
+  const musicBar = document.getElementById('storyMusicBar');
+  const musicPlayer = document.getElementById('storyMusicPlayer');
+  if (story.music) {
+    musicBar.style.display = 'flex';
+    document.getElementById('svMusicTitle').textContent = `${story.music.title} — ${story.music.artist}`;
+    musicPlayer.src = story.music.embedUrl;
+    musicPlayer.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+  } else {
+    musicBar.style.display = 'none';
+    musicPlayer.src = '';
+  }
+  
+  // Mark as viewed
+  if (!entry.isOwn) {
+    fbSet(`stories/${entry.username}/${story.id}/viewedBy/${currentUser.username}`, Date.now()).catch(() => {});
+  }
+  
+  // Start progress timer
+  startStoryTimer();
+}
+
+function startStoryTimer() {
+  clearStoryTimer();
+  
+  const { stories, index } = currentStoryView;
+  const story = stories[index];
+  const duration = (story.type === 'video' ? 15 : STORY_DISPLAY_SECONDS) * 1000;
+  
+  storyProgressStart = Date.now();
+  
+  const seg = document.querySelector(`[data-seg="${index}"] .fill`);
+  
+  storyTimerInterval = setInterval(() => {
+    const elapsed = Date.now() - storyProgressStart;
+    const pct = Math.min((elapsed / duration) * 100, 100);
+    
+    if (seg) seg.style.width = pct + '%';
+    
+    if (elapsed >= duration) {
+      clearStoryTimer();
+      if (seg) seg.style.width = '100%';
+      nextStory();
+    }
+  }, 50);
+}
+
+function clearStoryTimer() {
+  if (storyTimerInterval) {
+    clearInterval(storyTimerInterval);
+    storyTimerInterval = null;
+  }
+}
+
+function nextStory() {
+  clearStoryTimer();
+  
+  currentStoryView.index++;
+  if (currentStoryView.index >= currentStoryView.stories.length) {
+    // Try next user's stories
+    const currentIdx = friendStoriesCache.findIndex(e => e.username === currentStoryView.username);
+    const nextEntry = friendStoriesCache[currentIdx + 1];
+    if (nextEntry && !nextEntry.isOwn) {
+      openStoryViewer(nextEntry.username);
+    } else {
+      closeStoryViewer();
+    }
+    return;
+  }
+  
+  renderCurrentStory();
+}
+
+function prevStory() {
+  clearStoryTimer();
+  
+  if (currentStoryView.index > 0) {
+    currentStoryView.index--;
+    renderCurrentStory();
+  } else {
+    // Try previous user's stories
+    const currentIdx = friendStoriesCache.findIndex(e => e.username === currentStoryView.username);
+    const prevEntry = friendStoriesCache[currentIdx - 1];
+    if (prevEntry && !prevEntry.isOwn) {
+      currentStoryView.username = prevEntry.username;
+      currentStoryView.stories = prevEntry.stories;
+      currentStoryView.entry = prevEntry;
+      currentStoryView.index = prevEntry.stories.length - 1;
+      renderCurrentStory();
+    }
+  }
 }
 
 // ---- Boot Sequence ----
