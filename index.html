@@ -2442,6 +2442,195 @@ body {
   text-decoration: underline;
 }
 
+/* Chat header menu button */
+.chat-menu-btn {
+  width: 34px; height: 34px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s;
+  flex-shrink: 0;
+  position: relative;
+}
+.chat-menu-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+
+/* Chat dropdown menu */
+.chat-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  min-width: 200px;
+  z-index: 100;
+  display: none;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  animation: fadeIn 0.15s ease;
+}
+.chat-dropdown.active { display: block; }
+.chat-dropdown-item {
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.chat-dropdown-item:hover {
+  background: rgba(0,255,65,0.05);
+}
+.chat-dropdown-item .cdi-icon { font-size: 15px; width: 20px; text-align: center; }
+.chat-dropdown-item.danger { color: var(--red-primary); }
+.chat-dropdown-item.danger:hover { background: rgba(255,0,64,0.08); }
+.chat-dropdown-sep {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0;
+}
+
+/* Unsend button on messages */
+.msg-unsend-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+.message.sent:hover .msg-unsend-btn { display: flex; }
+.msg-unsend-btn:hover {
+  color: var(--red-primary);
+  border-color: var(--red-primary);
+  background: rgba(255,0,64,0.1);
+}
+.message.sent .msg-unsend-btn { right: -36px; }
+
+/* Unsent message placeholder */
+.msg-unsent {
+  font-style: italic;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* Blocked chat bar */
+.chat-blocked-bar {
+  padding: 14px 20px;
+  text-align: center;
+  background: rgba(255,0,64,0.05);
+  border-top: 1px solid rgba(255,0,64,0.2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 1px;
+  display: none;
+}
+.chat-blocked-bar.active { display: block; }
+.chat-blocked-bar button {
+  margin-left: 10px;
+  padding: 4px 12px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.chat-blocked-bar button:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+
+/* Confirm dialog */
+.confirm-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 7000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.confirm-overlay.active { display: flex; }
+.confirm-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 24px;
+  width: 340px;
+  max-width: 90vw;
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}
+.confirm-box .confirm-icon { font-size: 36px; margin-bottom: 12px; }
+.confirm-box .confirm-title {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.confirm-box .confirm-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.confirm-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.confirm-actions .confirm-cancel {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+.confirm-actions .confirm-danger {
+  background: rgba(255,0,64,0.2);
+  border: 1px solid var(--red-primary);
+  color: var(--red-primary);
+}
+.confirm-actions .confirm-danger:hover {
+  background: rgba(255,0,64,0.3);
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -2918,6 +3107,21 @@ body {
             </div>
           </div>
           <button class="call-btn" onclick="initiateCall()" title="Audio Call">📞</button>
+          <div style="position:relative;">
+            <button class="chat-menu-btn" onclick="toggleChatMenu()" title="Menu">⋮</button>
+            <div class="chat-dropdown" id="chatDropdown">
+              <button class="chat-dropdown-item" onclick="viewUserProfile(activeChatUser); closeChatMenu();">
+                <span class="cdi-icon">👤</span> View Profile
+              </button>
+              <div class="chat-dropdown-sep"></div>
+              <button class="chat-dropdown-item" onclick="toggleBlockUser(); closeChatMenu();" id="blockMenuItem">
+                <span class="cdi-icon">🚫</span> <span id="blockMenuText">Block User</span>
+              </button>
+              <button class="chat-dropdown-item danger" onclick="confirmDeleteChat(); closeChatMenu();">
+                <span class="cdi-icon">🗑️</span> Delete Chat
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="messages-container" id="messagesContainer"></div>
@@ -2937,6 +3141,11 @@ body {
             <small style="color: var(--text-dim); font-size: 9px;" id="mediaPreviewCount">0 files selected</small>
             <button onclick="clearMediaPreviews()" style="background: none; border: none; color: var(--red-primary); font-size: 10px; cursor: pointer;">✕ Clear All</button>
           </div>
+        </div>
+
+        <!-- Blocked User Bar (replaces input when blocked) -->
+        <div class="chat-blocked-bar" id="chatBlockedBar">
+          🚫 This user is blocked. <button onclick="toggleBlockUser()">Unblock</button>
         </div>
 
         <!-- Reply Preview Bar (shown when replying to a message) -->
@@ -2975,6 +3184,19 @@ body {
           <button class="send-btn" onclick="sendMessage()" id="sendMessageBtn" title="Send">▶</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay" onclick="if(event.target===this) closeConfirm()">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-desc" id="confirmDesc">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-danger" id="confirmActionBtn" onclick="">Confirm</button>
     </div>
   </div>
 </div>
@@ -4262,6 +4484,7 @@ async function openChat(username, chatId) {
 
   await loadMessages();
   await markMessagesAsRead();
+  await checkBlockStatus();
   document.getElementById('messageInput').focus();
 }
 
@@ -4306,6 +4529,19 @@ async function loadMessages() {
       div.dataset.id = msg.id;
 
       let content = '';
+      
+      // Check if message was unsent
+      if (msg.unsent) {
+        content = `<div class="msg-unsent">🚫 ${isSent ? 'You unsent this message' : 'This message was deleted'}</div>`;
+        
+        // For unsent messages, render minimal bubble with no media/reply
+        div.innerHTML = `
+          <div class="msg-bubble">${content}</div>
+          <div class="msg-meta"><span class="msg-time">${formatTime(msg.timestamp)}</span></div>
+        `;
+        container.appendChild(div);
+        continue;
+      }
       
       // Render multiple images with download buttons
       if (msg.images && msg.images.length > 0) {
@@ -4413,9 +4649,15 @@ async function loadMessages() {
         `;
       }
 
+      // Unsend button (only on own messages that aren't already unsent)
+      const unsendBtn = (isSent && !msg.unsent) 
+        ? `<button class="msg-unsend-btn" onclick="event.stopPropagation(); unsendMessage('${msg.id}')" title="Unsend">🗑</button>` 
+        : '';
+
       div.innerHTML = `
         ${!isSent ? `<div class="msg-sender">${escapeHtml(senderDisplayName)}${senderBadge}</div>` : ''}
         <button class="reply-btn" data-reply-id="${msg.id}" onclick="handleReplyClick(this)">↩</button>
+        ${unsendBtn}
         <div class="msg-bubble">${replyQuoteHtml}${content}</div>
         <div class="msg-meta">
           <span class="msg-time">${formatTime(msg.timestamp)}</span>
@@ -5176,6 +5418,10 @@ function spawnHeartBurst(msgEl) {
 // ---- Updated Send Message (with multimedia support, optimistic UI & reply) ----
 async function sendMessage() {
   if (!currentChatId || !activeChatUser) return;
+  
+  // Check block status before sending
+  const blocked = await checkBlockStatus();
+  if (blocked) { showToast('Cannot send message — user blocked', true); return; }
   
   // Check if we're recording - stop and send
   if (isRecording) {
@@ -7408,6 +7654,219 @@ function prevStory() {
       renderCurrentStory();
     }
   }
+}
+
+// ============================================================
+// ---- CHAT MANAGEMENT (Unsend, Block, Delete Chat) ----
+// ============================================================
+
+// ---- Chat Dropdown Menu ----
+function toggleChatMenu() {
+  const dropdown = document.getElementById('chatDropdown');
+  const isOpen = dropdown.classList.contains('active');
+  dropdown.classList.toggle('active', !isOpen);
+  
+  if (!isOpen) {
+    // Update block menu item text
+    updateBlockMenuState();
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', closeChatMenuOnOutside, { once: true });
+    }, 10);
+  }
+}
+
+function closeChatMenu() {
+  document.getElementById('chatDropdown').classList.remove('active');
+}
+
+function closeChatMenuOnOutside(e) {
+  if (!e.target.closest('.chat-menu-btn, .chat-dropdown')) {
+    closeChatMenu();
+  }
+}
+
+// ---- Unsend Message ----
+async function unsendMessage(msgId) {
+  if (!currentChatId) return;
+  
+  showConfirm(
+    '🗑️',
+    'Unsend Message?',
+    'This message will be removed for everyone in this chat. This cannot be undone.',
+    'Unsend',
+    async () => {
+      try {
+        // Replace message content with unsent marker
+        await fbUpdate(`messages/${currentChatId}/${msgId}`, {
+          unsent: true,
+          text: '',
+          image: null,
+          images: null,
+          videos: null,
+          audio: null,
+          storyReply: null,
+          replyTo: null,
+          reactions: null
+        });
+        
+        // Remove from DOM immediately
+        const msgEl = document.querySelector(`.message[data-id="${msgId}"]`);
+        if (msgEl) {
+          msgEl.innerHTML = `
+            <div class="msg-bubble"><div class="msg-unsent">🚫 You unsent this message</div></div>
+            <div class="msg-meta"><span class="msg-time">${formatTime(Date.now())}</span></div>
+          `;
+          // Remove swipe/reply/unsend buttons
+          const btns = msgEl.querySelectorAll('.reply-btn, .msg-unsend-btn, .msg-reaction, .swipe-reply-icon');
+          btns.forEach(b => b.remove());
+        }
+        
+        showToast('Message unsent');
+        loadContacts(); // Update last message preview
+      } catch(e) {
+        showToast('Failed to unsend message', true);
+      }
+    }
+  );
+}
+
+// ---- Block / Unblock User ----
+async function toggleBlockUser() {
+  if (!activeChatUser) return;
+  
+  const blockedList = currentUser.blocked || {};
+  const isBlocked = !!blockedList[activeChatUser];
+  
+  if (isBlocked) {
+    // Unblock
+    try {
+      await fbDelete(`users/${currentUser.username}/blocked/${activeChatUser}`);
+      delete blockedList[activeChatUser];
+      currentUser.blocked = blockedList;
+      showToast(`${activeChatUser} unblocked`);
+      updateBlockedUI(false);
+    } catch(e) {
+      showToast('Failed to unblock', true);
+    }
+  } else {
+    // Block
+    showConfirm(
+      '🚫',
+      `Block ${activeChatUser}?`,
+      'They won\'t be able to send you messages, and you won\'t be able to send them messages either.',
+      'Block User',
+      async () => {
+        try {
+          await fbSet(`users/${currentUser.username}/blocked/${activeChatUser}`, Date.now());
+          blockedList[activeChatUser] = Date.now();
+          currentUser.blocked = blockedList;
+          showToast(`${activeChatUser} blocked`);
+          updateBlockedUI(true);
+        } catch(e) {
+          showToast('Failed to block user', true);
+        }
+      }
+    );
+  }
+}
+
+function updateBlockMenuState() {
+  if (!activeChatUser) return;
+  const blockedList = currentUser.blocked || {};
+  const isBlocked = !!blockedList[activeChatUser];
+  document.getElementById('blockMenuText').textContent = isBlocked ? 'Unblock User' : 'Block User';
+}
+
+function updateBlockedUI(isBlocked) {
+  const blockedBar = document.getElementById('chatBlockedBar');
+  const inputArea = document.querySelector('.chat-input-area');
+  const replyBar = document.getElementById('replyPreviewBar');
+  const mediaPreview = document.getElementById('mediaPreviewArea');
+  
+  if (isBlocked) {
+    blockedBar.classList.add('active');
+    if (inputArea) inputArea.style.display = 'none';
+    replyBar.classList.remove('active');
+    mediaPreview.classList.remove('active');
+  } else {
+    blockedBar.classList.remove('active');
+    if (inputArea) inputArea.style.display = 'flex';
+  }
+}
+
+// Check block status when opening chat and during sync
+async function checkBlockStatus() {
+  if (!activeChatUser || !currentUser) return;
+  
+  // Check if I blocked them
+  const myBlocked = currentUser.blocked || {};
+  if (myBlocked[activeChatUser]) {
+    updateBlockedUI(true);
+    return true;
+  }
+  
+  // Check if they blocked me
+  try {
+    const theirBlocked = await fbGet(`users/${activeChatUser}/blocked/${currentUser.username}`);
+    if (theirBlocked) {
+      const blockedBar = document.getElementById('chatBlockedBar');
+      blockedBar.innerHTML = '🚫 You cannot message this user.';
+      blockedBar.classList.add('active');
+      document.querySelector('.chat-input-area').style.display = 'none';
+      return true;
+    }
+  } catch(e) {}
+  
+  updateBlockedUI(false);
+  return false;
+}
+
+// ---- Delete Full Chat ----
+function confirmDeleteChat() {
+  if (!currentChatId || !activeChatUser) return;
+  
+  showConfirm(
+    '🗑️',
+    'Delete entire chat?',
+    `All messages with ${activeChatUser} will be permanently deleted for everyone. This cannot be undone.`,
+    'Delete Chat',
+    async () => {
+      try {
+        await fbDelete(`messages/${currentChatId}`);
+        
+        // Clear UI
+        document.getElementById('messagesContainer').innerHTML = '';
+        renderedMessageIds.clear();
+        allLoadedMessages = {};
+        
+        showToast('Chat deleted');
+        loadContacts();
+      } catch(e) {
+        showToast('Failed to delete chat', true);
+      }
+    }
+  );
+}
+
+// ---- Confirm Dialog Helper ----
+function showConfirm(icon, title, desc, actionText, onConfirm) {
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent = desc;
+  
+  const actionBtn = document.getElementById('confirmActionBtn');
+  actionBtn.textContent = actionText;
+  actionBtn.onclick = () => {
+    closeConfirm();
+    onConfirm();
+  };
+  
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
 }
 
 // ---- Boot Sequence ----
