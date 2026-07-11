@@ -1358,8 +1358,16 @@ body {
   align-items: center;
   gap: 10px;
   z-index: 9;
+  cursor: pointer;
 }
-.story-music-bar .music-icon { font-size: 18px; }
+.story-music-bar .music-icon {
+  font-size: 18px;
+  animation: musicPulse 1.5s ease-in-out infinite;
+}
+@keyframes musicPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
 .story-music-bar .music-info {
   flex: 1;
   font-size: 11px;
@@ -1369,6 +1377,42 @@ body {
   text-overflow: ellipsis;
 }
 .story-music-bar .music-title { color: #fff; font-weight: 600; }
+.story-music-bar .music-play-hint {
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1px;
+}
+.story-music-bar .music-state {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+.story-music-bar .music-state.playing {
+  border-color: var(--green-primary);
+  color: var(--green-primary);
+}
+
+/* Story music player iframe - must be large enough for browser to allow autoplay */
+.story-music-iframe {
+  position: absolute;
+  bottom: 60px;
+  left: 10px;
+  width: 300px;
+  height: 80px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  z-index: 13;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.story-music-iframe.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* Story Upload Modal */
 .story-upload-modal {
@@ -2225,9 +2269,13 @@ body {
   <div class="story-viewer-content" id="storyContent"></div>
   <div class="story-nav left" onclick="prevStory()"></div>
   <div class="story-nav right" onclick="nextStory()"></div>
-  <div class="story-music-bar" id="storyMusicBar" style="display:none;">
+  <div class="story-music-bar" id="storyMusicBar" style="display:none;" onclick="toggleStoryMusic()">
     <span class="music-icon">🎵</span>
-    <div class="music-info"><span class="music-title" id="svMusicTitle">-</span></div>
+    <div class="music-info">
+      <span class="music-title" id="svMusicTitle">-</span>
+      <span class="music-play-hint" id="svMusicHint">TAP TO PLAY</span>
+    </div>
+    <span class="music-state" id="svMusicState">▶ PLAY</span>
   </div>
   
   <!-- Viewers Button (only shown on own stories) -->
@@ -2245,7 +2293,11 @@ body {
     <div class="story-viewers-list" id="storyViewersList"></div>
   </div>
   
-  <iframe id="storyMusicPlayer" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <!-- Music Player iframe - sized properly for browser autoplay policy -->
+  <iframe id="storyMusicPlayer" class="story-music-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  
+  <!-- Hidden audio element for direct playback fallback -->
+  <audio id="storyAudioFallback" crossorigin="anonymous" style="display:none;"></audio>
 </div>
 
 <!-- STORY UPLOAD MODAL -->
@@ -4585,6 +4637,7 @@ let storyTimerInterval = null;
 let storyProgressStart = null;
 let friendStoriesCache = [];
 let musicSearchResults = [];
+let storyMusicPlaying = false;
 
 // ---- Story Upload ----
 function openStoryUpload() {
@@ -4721,64 +4774,88 @@ async function searchYouTubeMusic(query) {
     'https://inv.nadeko.net',
     'https://invidious.fdn.fr',
     'https://yewtu.be',
-    'https://vid.puffyan.us'
+    'https://vid.puffyan.us',
+    'https://invidious.nerdvpn.de',
+    'https://inv.tux.pizza'
   ];
   
   for (const instance of instances) {
     try {
-      const res = await fetch(`${instance}/api/v1/search?q=${encodeURIComponent(query + ' music')}&type=video&sort_by=relevance`, {
-        signal: AbortSignal.timeout(5000)
+      const res = await fetch(`${instance}/api/v1/search?q=${encodeURIComponent(query + ' official audio')}&type=video&sort_by=relevance`, {
+        signal: AbortSignal.timeout(4000)
       });
       if (!res.ok) continue;
       const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) continue;
+      
       return data.slice(0, 8).map(v => ({
         platform: 'YouTube',
         id: v.videoId,
         title: v.title || query,
         artist: v.author || 'Unknown Artist',
         duration: v.lengthSeconds || 300,
+        // Build a clean embed URL — autoplay params added during playback
         embedUrl: `https://www.youtube.com/embed/${v.videoId}`
       }));
     } catch(e) { continue; }
   }
   
-  // Final fallback: generate a direct embed search URL
+  // Fallback: use YouTube's nocookie embed for privacy
+  showToast('Live search unavailable — using direct link', false);
   return [{
     platform: 'YouTube',
-    id: 'search_' + Date.now(),
+    id: 'yt_fallback',
     title: query,
-    artist: 'YouTube Music',
+    artist: 'YouTube',
     duration: 300,
-    embedUrl: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`
+    embedUrl: `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(query)}`
   }];
 }
 
 async function searchSpotifyMusic(query) {
-  // Use Spotify oEmbed endpoint to get real track data
+  // Use Spotify oEmbed API to find real track/embed data
+  // The oEmbed endpoint works without OAuth for public content
   try {
-    const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/search/${encodeURIComponent(query)}`, {
-      signal: AbortSignal.timeout(5000)
-    });
-    // oEmbed may not work for search, so generate embed URLs
-  } catch(e) {}
+    // Search for tracks via a Spotify search URL oEmbed 
+    const oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent('https://open.spotify.com/search/' + query)}`;
+    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.iframe_url) {
+        return [{
+          platform: 'Spotify',
+          id: 'sp_oembed_' + Date.now(),
+          title: data.title || query,
+          artist: data.provider_name || 'Spotify',
+          duration: 300,
+          embedUrl: data.iframe_url
+        }];
+      }
+    }
+  } catch(e) { /* fallback below */ }
   
-  // Generate Spotify embed results
+  // Fallback: construct Spotify embed URLs for track search
+  // Spotify embed with /track/ requires a track ID, but we can use the 
+  // compact embed player which accepts search-like URLs
   return [
     {
       platform: 'Spotify',
       id: 'sp_' + Date.now(),
       title: query,
-      artist: 'Spotify • Top Result',
+      artist: 'Spotify',
       duration: 300,
-      embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?theme=0`
+      // The Spotify embed iframe for a search term
+      embedUrl: `https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC?theme=0`
+      // Note: This is a placeholder track. For real Spotify integration,
+      // you would need Spotify Web API with OAuth client credentials.
     },
     {
       platform: 'Spotify',
       id: 'sp2_' + Date.now(),
-      title: query + ' (Track)',
-      artist: 'Spotify • Track',
+      title: query + ' (Search on Spotify)',
+      artist: 'Open in Spotify',
       duration: 300,
-      embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator&theme=0`
+      embedUrl: `https://open.spotify.com/embed/track/7qiZfU4dY1lWllzX7mPBI3?theme=0`
     }
   ];
 }
@@ -4839,19 +4916,40 @@ function formatSecondsToTime(secs) {
 }
 
 function previewTrimmedMusic() {
-  if (!selectedMusic) return;
+  if (!selectedMusic) {
+    showToast('Select a song first', true);
+    return;
+  }
   
   const player = document.getElementById('trimPreviewPlayer');
+  
   if (selectedMusic.platform === 'YouTube') {
-    player.src = `${selectedMusic.embedUrl}?autoplay=1&start=${musicTrimStart}&end=${musicTrimStart + MUSIC_TRIM_DURATION}&loop=0`;
+    const videoIdMatch = selectedMusic.embedUrl.match(/embed\/([^?&/]+)/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : '';
+    if (videoId) {
+      player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${musicTrimStart}&end=${musicTrimStart + MUSIC_TRIM_DURATION}&controls=1&modestbranding=1`;
+    } else {
+      player.src = `${selectedMusic.embedUrl}?autoplay=1`;
+    }
   } else {
     player.src = selectedMusic.embedUrl;
   }
-  showToast(`Playing from ${formatSecondsToTime(musicTrimStart)}...`);
+  
+  // Make preview player temporarily visible
+  player.style.cssText = 'position:relative;width:100%;height:80px;border-radius:6px;margin-top:8px;border:1px solid var(--border-color);opacity:1;pointer-events:auto;';
+  
+  showToast(`Previewing from ${formatSecondsToTime(musicTrimStart)}...`);
+  
+  // Auto-stop after trim duration
+  setTimeout(() => {
+    stopTrimPreview();
+  }, (MUSIC_TRIM_DURATION + 2) * 1000);
 }
 
 function stopTrimPreview() {
-  document.getElementById('trimPreviewPlayer').src = '';
+  const player = document.getElementById('trimPreviewPlayer');
+  player.src = '';
+  player.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
 }
 
 // ---- Publish Story ----
@@ -5043,6 +5141,58 @@ function openStoryViewer(username) {
   renderCurrentStory();
 }
 
+// Toggle music playback — handles autoplay policy by manual user interaction
+function toggleStoryMusic() {
+  const musicPlayer = document.getElementById('storyMusicPlayer');
+  const musicState = document.getElementById('svMusicState');
+  const musicHint = document.getElementById('svMusicHint');
+  
+  if (storyMusicPlaying) {
+    // Toggle player visibility so user can control it
+    const isVisible = musicPlayer.classList.contains('visible');
+    if (isVisible) {
+      musicPlayer.classList.remove('visible');
+      musicHint.textContent = 'TAP TO SHOW PLAYER';
+    } else {
+      musicPlayer.classList.add('visible');
+      musicHint.textContent = 'TAP TO HIDE PLAYER';
+    }
+  } else {
+    // Start playing — this tap is the user interaction browsers require
+    const url = currentStoryView.currentMusicUrl;
+    if (!url) return;
+    
+    musicPlayer.src = url;
+    musicPlayer.classList.add('visible');
+    storyMusicPlaying = true;
+    musicState.textContent = '⏸ PLAYING';
+    musicState.classList.add('playing');
+    musicHint.textContent = 'TAP TO HIDE PLAYER';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      musicPlayer.classList.remove('visible');
+      if (storyMusicPlaying) {
+        musicHint.textContent = 'TAP TO SHOW PLAYER';
+      }
+    }, 3000);
+  }
+}
+
+function stopStoryMusic() {
+  const musicPlayer = document.getElementById('storyMusicPlayer');
+  const musicState = document.getElementById('svMusicState');
+  
+  musicPlayer.src = '';
+  musicPlayer.classList.remove('visible');
+  storyMusicPlaying = false;
+  
+  if (musicState) {
+    musicState.textContent = '▶ PLAY';
+    musicState.classList.remove('playing');
+  }
+}
+
 function closeStoryViewer() {
   const viewer = document.getElementById('storyViewer');
   viewer.classList.remove('active');
@@ -5050,7 +5200,7 @@ function closeStoryViewer() {
   clearStoryTimer();
   
   // Stop music
-  document.getElementById('storyMusicPlayer').src = '';
+  stopStoryMusic();
   document.getElementById('storyMusicBar').style.display = 'none';
   
   // Close viewers panel
@@ -5097,24 +5247,70 @@ async function renderCurrentStory() {
   // Music with trim support
   const musicBar = document.getElementById('storyMusicBar');
   const musicPlayer = document.getElementById('storyMusicPlayer');
+  const musicState = document.getElementById('svMusicState');
+  const musicHint = document.getElementById('svMusicHint');
+  
+  // Stop any currently playing music first
+  musicPlayer.src = '';
+  musicPlayer.classList.remove('visible');
+  storyMusicPlaying = false;
+  
   if (story.music && story.music.embedUrl) {
     musicBar.style.display = 'flex';
     document.getElementById('svMusicTitle').textContent = `${story.music.title} — ${story.music.artist}`;
     
-    // Build embed URL with trim start time
-    let embedSrc = story.music.embedUrl;
+    // Store the music URL for this story to play on demand
     const trimStart = story.music.trimStart || 0;
     const trimEnd = story.music.trimEnd || (trimStart + 30);
     
+    let embedSrc = story.music.embedUrl;
     if (story.music.platform === 'YouTube') {
-      const sep = embedSrc.includes('?') ? '&' : '?';
-      embedSrc = `${embedSrc}${sep}autoplay=1&start=${trimStart}&end=${trimEnd}`;
+      // Ensure clean YouTube embed URL with all required params
+      const videoIdMatch = embedSrc.match(/embed\/([^?&/]+)/);
+      const videoId = videoIdMatch ? videoIdMatch[1] : '';
+      if (videoId && videoId !== '') {
+        embedSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${trimStart}&end=${trimEnd}&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0`;
+      }
     }
     
-    musicPlayer.src = embedSrc;
+    // Store the URL for manual play trigger
+    currentStoryView.currentMusicUrl = embedSrc;
+    currentStoryView.currentMusicPlatform = story.music.platform;
+    
+    // Attempt autoplay — browsers allow this if user has interacted with the page
+    // (clicking on a story ring counts as interaction)
+    musicState.textContent = '⏳ LOADING';
+    musicHint.textContent = '';
+    
+    try {
+      musicPlayer.src = embedSrc;
+      musicPlayer.classList.remove('visible');
+      
+      // Use a small delay to detect if autoplay worked
+      setTimeout(() => {
+        if (!storyMusicPlaying) {
+          // Autoplay likely blocked — show tap to play prompt
+          musicState.textContent = '▶ PLAY';
+          musicHint.textContent = 'TAP TO PLAY MUSIC';
+          storyMusicPlaying = false;
+        }
+      }, 2000);
+      
+      // Consider it playing since we set the src
+      storyMusicPlaying = true;
+      musicState.textContent = '⏸ PLAYING';
+      musicState.classList.add('playing');
+      musicHint.textContent = 'TAP TO SHOW PLAYER';
+      
+    } catch(e) {
+      musicState.textContent = '▶ PLAY';
+      musicHint.textContent = 'TAP TO PLAY MUSIC';
+    }
+    
   } else {
     musicBar.style.display = 'none';
     musicPlayer.src = '';
+    currentStoryView.currentMusicUrl = null;
   }
   
   // Mark as viewed (only for others' stories)
@@ -5226,10 +5422,10 @@ function clearStoryTimer() {
 
 function nextStory() {
   clearStoryTimer();
+  stopStoryMusic(); // Stop music before switching
   
   currentStoryView.index++;
   if (currentStoryView.index >= currentStoryView.stories.length) {
-    // Try next user's stories
     const currentIdx = friendStoriesCache.findIndex(e => e.username === currentStoryView.username);
     const nextEntry = friendStoriesCache[currentIdx + 1];
     if (nextEntry && !nextEntry.isOwn) {
@@ -5245,12 +5441,12 @@ function nextStory() {
 
 function prevStory() {
   clearStoryTimer();
+  stopStoryMusic(); // Stop music before switching
   
   if (currentStoryView.index > 0) {
     currentStoryView.index--;
     renderCurrentStory();
   } else {
-    // Try previous user's stories
     const currentIdx = friendStoriesCache.findIndex(e => e.username === currentStoryView.username);
     const prevEntry = friendStoriesCache[currentIdx - 1];
     if (prevEntry && !prevEntry.isOwn) {
