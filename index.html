@@ -1042,6 +1042,113 @@ body {
 .new-msg-indicator:hover {
   background: #005500;
 }
+
+/* Verified Badge */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1da1f2;
+  color: #fff;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-left: 4px;
+  font-weight: bold;
+  box-shadow: 0 0 6px rgba(29, 161, 242, 0.5);
+}
+.verified-badge-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1da1f2;
+  color: #fff;
+  font-size: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-left: 3px;
+  font-weight: bold;
+}
+.verified-status {
+  color: #1da1f2;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Username change wrapper */
+.username-change-wrap {
+  display: flex;
+  gap: 8px;
+}
+.username-change-wrap input {
+  flex: 1;
+}
+.small-btn {
+  padding: 8px 12px;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.small-btn:hover {
+  background: #005500;
+  box-shadow: 0 0 8px var(--green-glow);
+}
+.small-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.verify-btn {
+  background: rgba(29, 161, 242, 0.2);
+  border-color: #1da1f2;
+  color: #1da1f2;
+}
+.verify-btn:hover {
+  background: rgba(29, 161, 242, 0.3);
+  box-shadow: 0 0 8px rgba(29, 161, 242, 0.3);
+}
+
+/* Verification input */
+.verification-input-wrap {
+  display: flex;
+  gap: 8px;
+}
+.verification-input-wrap input {
+  flex: 1;
+}
+
+/* Manual refresh button */
+.refresh-btn {
+  padding: 6px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.refresh-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+.refresh-btn.refreshing {
+  opacity: 0.6;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -1138,6 +1245,9 @@ body {
   <div class="connection-bar connected" id="connectionBar">
     <span class="connection-dot"></span>
     <span id="connectionText">CONNECTED TO GLOBAL NETWORK</span>
+    <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn" title="Refresh data">
+      🔄 REFRESH
+    </button>
   </div>
 
   <div class="app-main">
@@ -1248,14 +1358,39 @@ body {
       <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
       <small>[ CLICK AVATAR TO CHANGE ]</small>
     </div>
+    
+    <!-- Username with change option -->
     <div class="form-group">
-      <label>> Username</label>
-      <input type="text" id="profileUsername" disabled style="opacity:0.6">
+      <label>> Username <span id="verifiedBadgeProfile"></span></label>
+      <div class="username-change-wrap">
+        <input type="text" id="profileUsername" placeholder="username">
+        <button class="small-btn" onclick="changeUsername()" id="changeUsernameBtn">CHANGE</button>
+      </div>
+      <small id="usernameChangeCooldown" style="color: var(--text-dim); font-size: 9px;"></small>
     </div>
+    
     <div class="form-group">
       <label>> Status</label>
       <input type="text" id="profileStatus" placeholder="Set your status..." maxlength="50">
     </div>
+    
+    <!-- Verification Section -->
+    <div class="form-group">
+      <label>> Verification</label>
+      <div id="verificationSection">
+        <div id="notVerifiedSection">
+          <div class="verification-input-wrap">
+            <input type="text" id="verifyTokenInput" placeholder="Enter your token...">
+            <button class="small-btn verify-btn" onclick="verifyAccount()">VERIFY</button>
+          </div>
+          <small style="color: var(--text-dim); font-size: 9px;">Enter verification token to get blue badge</small>
+        </div>
+        <div id="alreadyVerifiedSection" style="display:none;">
+          <span class="verified-status">✓ VERIFIED <span class="verified-badge">✓</span></span>
+        </div>
+      </div>
+    </div>
+    
     <button class="auth-btn" onclick="saveProfile()" style="margin-top:4px">💾 SAVE CHANGES</button>
   </div>
 </div>
@@ -1780,7 +1915,11 @@ function setAvatarContent(elId, avatarData, username) {
 function openProfileModal() {
   document.getElementById('profileModal').classList.add('active');
   document.getElementById('profileStatus').value = currentUser.status || '';
+  document.getElementById('profileUsername').value = currentUser.username;
+  document.getElementById('profileUsername').disabled = false;
   setAvatarContent('profileAvatar', currentUser.avatar, currentUser.username);
+  updateUsernameCooldownDisplay();
+  updateVerificationUI();
 }
 
 async function handleAvatarChange(event) {
@@ -1827,12 +1966,37 @@ async function loadAllUsers() {
   }
 }
 
+// Show all users by default when Find Users tab is opened
+async function showAllUsers() {
+  const list = document.getElementById('searchResultList');
+  list.innerHTML = '<div class="spinner"></div>';
+  
+  await loadAllUsers();
+  
+  const results = [];
+  for (const [username, data] of Object.entries(allUsersCache)) {
+    if (username === currentUser.username) continue;
+    results.push({ username, ...data });
+  }
+  
+  // Sort by last seen (most recent first)
+  results.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+  
+  if (results.length === 0) {
+    list.innerHTML = '<div class="empty-state">No other users registered yet.</div>';
+    return;
+  }
+  
+  renderSearchResults(results);
+}
+
 function handleGlobalSearch() {
   const query = document.getElementById('globalSearchInput').value.trim().toLowerCase();
   const list = document.getElementById('searchResultList');
   
+  // If search is empty, show all users
   if (!query) {
-    list.innerHTML = '<div class="empty-state">Search for users by username above.</div>';
+    showAllUsers();
     return;
   }
   
@@ -1875,11 +2039,14 @@ async function renderSearchResults(results) {
       ? `<img src="${user.avatar}" alt="">`
       : user.username[0].toUpperCase();
     
+    // Add verified badge if user is verified
+    const verifiedBadge = user.verified ? '<span class="verified-badge-small">✓</span>' : '';
+    
     html += `
       <div class="search-result-item">
         <div class="avatar ${isOnline ? 'online' : ''}">${avatarContent}</div>
         <div class="result-info">
-          <div class="result-name">${escapeHtml(user.username)}</div>
+          <div class="result-name">${escapeHtml(user.username)}${verifiedBadge}</div>
           <div class="result-status">${isOnline ? '● ONLINE' : 'OFFLINE'}</div>
         </div>
         ${btnHtml}
@@ -2026,11 +2193,12 @@ function renderContacts(contacts) {
       ? `<img src="${c.avatar}" alt="">`
       : (c.username[0] || '?').toUpperCase();
     const isOnline = c.lastSeen && (Date.now() - c.lastSeen < 30000);
+    const verifiedBadge = c.verified ? '<span class="verified-badge-small">✓</span>' : '';
     return `
       <div class="contact-item ${isActive}" onclick="openChat('${c.username}', '${c.chatId}')">
         <div class="avatar ${isOnline ? 'online' : ''}">${avatarContent}</div>
         <div class="contact-info">
-          <div class="contact-name">${escapeHtml(c.username)}</div>
+          <div class="contact-name">${escapeHtml(c.username)}${verifiedBadge}</div>
           <div class="contact-last-msg">${c.lastMessage ? escapeHtml(c.lastMessage) : '<i style="color:var(--text-dim)">No messages yet</i>'}</div>
         </div>
         <div class="contact-time">${c.lastTime ? formatTime(c.lastTime) : ''}</div>
@@ -2118,7 +2286,7 @@ function switchSidebarTab(tab) {
   document.getElementById('globalSearchArea').style.display = tab === 'search' ? 'block' : 'none';
   
   if (tab === 'search') {
-    loadAllUsers();
+    showAllUsers(); // Show all users by default
     document.getElementById('globalSearchInput').focus();
   }
 }
@@ -2434,43 +2602,225 @@ function goBackToSidebar() {
   document.getElementById('chatEmpty').style.display = 'flex';
 }
 
-// ---- Silent Sync (3-second refresh) ----
+// ---- Manual Refresh (Auto-refresh disabled) ----
 function startSync() {
-  if (syncInterval) clearInterval(syncInterval);
+  // Auto-refresh disabled - users must manually refresh using the button
+  // Just update lastSeen once on start
+  if (currentUser) {
+    fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() }).catch(() => {});
+  }
+}
 
-  syncInterval = setInterval(async () => {
-    try {
-      await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
+// Manual refresh function
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('refreshing');
+  btn.textContent = '⏳ REFRESHING...';
+  
+  try {
+    await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
 
-      if (currentChatId) {
-        await loadMessages();
-        await markMessagesAsRead();
-        await checkTypingStatus();
+    if (currentChatId) {
+      await loadMessages();
+      await markMessagesAsRead();
+      await checkTypingStatus();
+    }
+
+    await loadContacts();
+    await loadRequests();
+    await loadAllUsers();
+
+    const freshUser = await fbGet(`users/${currentUser.username}`);
+    if (freshUser) {
+      currentUser = freshUser;
+      updateMyProfile();
+    }
+
+    if (activeChatUser) {
+      const partnerData = await fbGet(`users/${activeChatUser}`);
+      if (partnerData) {
+        const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
+        document.getElementById('chatUserStatus').textContent = isOnline 
+          ? '● Online' 
+          : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
       }
+    }
+    
+    showToast('Data refreshed');
+  } catch (e) {
+    console.warn('Refresh error:', e);
+    showToast('Refresh failed', true);
+  } finally {
+    btn.classList.remove('refreshing');
+    btn.textContent = '🔄 REFRESH';
+  }
+}
 
-      await loadContacts();
-      await loadRequests();
-      await loadAllUsers();
-
-      const freshUser = await fbGet(`users/${currentUser.username}`);
-      if (freshUser) {
-        currentUser = freshUser;
-      }
-
-      if (activeChatUser) {
-        const partnerData = await fbGet(`users/${activeChatUser}`);
-        if (partnerData) {
-          const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
-          document.getElementById('chatUserStatus').textContent = isOnline 
-            ? '● Online' 
-            : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
+// ---- Username Change with 14-day cooldown ----
+async function changeUsername() {
+  const newUsername = document.getElementById('profileUsername').value.trim().toLowerCase();
+  const btn = document.getElementById('changeUsernameBtn');
+  
+  if (!newUsername || newUsername.length < 3) {
+    showToast('Username must be 3+ characters', true);
+    return;
+  }
+  
+  if (!/^[a-z0-9_]+$/.test(newUsername)) {
+    showToast('Username: lowercase letters, numbers, underscore only', true);
+    return;
+  }
+  
+  if (newUsername === currentUser.username) {
+    showToast('This is already your username', true);
+    return;
+  }
+  
+  // Check 14-day cooldown
+  const lastChange = currentUser.lastUsernameChange || 0;
+  const daysSinceChange = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
+  
+  if (lastChange > 0 && daysSinceChange < 14) {
+    const daysRemaining = Math.ceil(14 - daysSinceChange);
+    showToast(`You can change username in ${daysRemaining} day(s)`, true);
+    return;
+  }
+  
+  // Check if new username exists
+  const existingUser = await fbGet(`users/${newUsername}`);
+  if (existingUser) {
+    showToast('Username already taken', true);
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = '...';
+  
+  try {
+    const oldUsername = currentUser.username;
+    
+    // Create new user entry with updated data
+    const updatedUser = {
+      ...currentUser,
+      username: newUsername,
+      lastUsernameChange: Date.now(),
+      previousUsernames: [...(currentUser.previousUsernames || []), oldUsername]
+    };
+    
+    // Save to new username key
+    await fbSet(`users/${newUsername}`, updatedUser);
+    
+    // Delete old username entry
+    await fbDelete(`users/${oldUsername}`);
+    
+    // Update all friend records
+    const allFriends = await fbGet('friends') || {};
+    for (const [chatId, data] of Object.entries(allFriends)) {
+      if (data.from === oldUsername || data.to === oldUsername) {
+        const newChatId = chatId.replace(oldUsername, newUsername);
+        const updatedData = {
+          ...data,
+          from: data.from === oldUsername ? newUsername : data.from,
+          to: data.to === oldUsername ? newUsername : data.to
+        };
+        
+        // Create new friend record
+        await fbSet(`friends/${newChatId}`, updatedData);
+        
+        // Move messages to new chat ID if different
+        if (newChatId !== chatId) {
+          const messages = await fbGet(`messages/${chatId}`);
+          if (messages) {
+            await fbSet(`messages/${newChatId}`, messages);
+            await fbDelete(`messages/${chatId}`);
+          }
+          await fbDelete(`friends/${chatId}`);
         }
       }
-      
-    } catch (e) {
-      console.warn('Sync error:', e);
     }
-  }, 3000);
+    
+    // Update current user and localStorage
+    currentUser = updatedUser;
+    localStorage.setItem('dc_current_user', newUsername);
+    
+    updateMyProfile();
+    showToast(`Username changed to ${newUsername}`);
+    
+  } catch(e) {
+    showToast('Failed to change username: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'CHANGE';
+  }
+}
+
+// Check and display username change cooldown
+function updateUsernameCooldownDisplay() {
+  const cooldownEl = document.getElementById('usernameChangeCooldown');
+  const btn = document.getElementById('changeUsernameBtn');
+  
+  if (!currentUser) return;
+  
+  const lastChange = currentUser.lastUsernameChange || 0;
+  
+  if (lastChange === 0) {
+    cooldownEl.textContent = '';
+    btn.disabled = false;
+    return;
+  }
+  
+  const daysSinceChange = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
+  
+  if (daysSinceChange < 14) {
+    const daysRemaining = Math.ceil(14 - daysSinceChange);
+    cooldownEl.textContent = `⏳ Can change again in ${daysRemaining} day(s)`;
+    cooldownEl.style.color = 'var(--yellow-primary)';
+    btn.disabled = true;
+  } else {
+    cooldownEl.textContent = '✓ Username change available';
+    cooldownEl.style.color = 'var(--green-dim)';
+    btn.disabled = false;
+  }
+}
+
+// ---- Account Verification ----
+async function verifyAccount() {
+  const token = document.getElementById('verifyTokenInput').value.trim();
+  
+  if (!token) {
+    showToast('Enter your token', true);
+    return;
+  }
+  
+  if (token === 'welovehacking') {
+    try {
+      await fbUpdate(`users/${currentUser.username}`, { verified: true });
+      currentUser.verified = true;
+      updateVerificationUI();
+      updateMyProfile();
+      showToast('🎉 Account verified! You now have a blue badge.');
+    } catch(e) {
+      showToast('Verification failed', true);
+    }
+  } else {
+    showToast('Invalid token', true);
+  }
+}
+
+function updateVerificationUI() {
+  const notVerified = document.getElementById('notVerifiedSection');
+  const verified = document.getElementById('alreadyVerifiedSection');
+  const profileBadge = document.getElementById('verifiedBadgeProfile');
+  
+  if (currentUser && currentUser.verified) {
+    notVerified.style.display = 'none';
+    verified.style.display = 'block';
+    profileBadge.innerHTML = '<span class="verified-badge">✓</span>';
+  } else {
+    notVerified.style.display = 'block';
+    verified.style.display = 'none';
+    profileBadge.innerHTML = '';
+  }
 }
 
 // ---- Matrix Rain Background ----
