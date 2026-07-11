@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DARK CHAT — Encrypted Communications</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Firebase SDK for Google Authentication -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
@@ -115,67 +118,6 @@ body {
   height: 10%;
   background: linear-gradient(transparent, rgba(0,255,65,0.02), transparent);
   animation: scanline 8s linear infinite;
-}
-
-/* Setup Screen */
-.setup-container {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  background: var(--bg-primary);
-}
-.setup-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 40px;
-  width: 520px;
-  max-width: 95vw;
-  position: relative;
-  animation: pulse-green 3s infinite;
-}
-.setup-box h2 {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 24px;
-  color: var(--green-primary);
-  text-align: center;
-  margin-bottom: 10px;
-  letter-spacing: 3px;
-}
-.setup-box .subtitle {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 11px;
-  margin-bottom: 25px;
-  line-height: 1.8;
-}
-.setup-steps {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 20px;
-  font-size: 11px;
-  line-height: 2;
-  color: var(--text-secondary);
-}
-.setup-steps ol {
-  padding-left: 20px;
-}
-.setup-steps a {
-  color: var(--green-primary);
-  text-decoration: underline;
-}
-.setup-steps code {
-  background: var(--bg-primary);
-  padding: 2px 6px;
-  border-radius: 3px;
-  color: var(--yellow-primary);
-  font-size: 10px;
 }
 
 /* Auth Screen */
@@ -327,6 +269,54 @@ body {
   margin-top: 10px;
   text-align: center;
   min-height: 16px;
+}
+
+/* Google Sign-In Button */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+.auth-divider span {
+  padding: 0 12px;
+}
+.google-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.google-btn:hover {
+  border-color: var(--green-dim);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+.google-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.google-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Connection Status Bar */
@@ -482,7 +472,7 @@ body {
   letter-spacing: 1px;
 }
 
-/* Tabs (Friends / Requests / Search) */
+/* Tabs */
 .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-color);
@@ -519,7 +509,7 @@ body {
   text-align: center;
 }
 
-/* Search / Add Friend */
+/* Search */
 .sidebar-search {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
@@ -767,13 +757,16 @@ body {
   border-bottom-left-radius: 2px;
   color: var(--text-primary);
 }
-.message .msg-time {
+.message .msg-meta {
   font-size: 9px;
   color: var(--text-dim);
   margin-top: 4px;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.message.received .msg-time { text-align: left; }
+.message.sent .msg-meta { justify-content: flex-end; }
+.message.received .msg-meta { justify-content: flex-start; }
 .message .msg-image {
   max-width: 250px;
   max-height: 300px;
@@ -787,6 +780,21 @@ body {
   color: var(--green-dim);
   margin-bottom: 4px;
   letter-spacing: 1px;
+}
+
+/* Read Receipt Styles */
+.msg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+}
+.msg-status.sent-status { color: var(--text-dim); }
+.msg-status.delivered-status { color: var(--text-secondary); }
+.msg-status.seen-status { color: var(--cyan-primary); }
+.msg-status svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* Chat Input */
@@ -1047,9 +1055,6 @@ body {
   <img id="imgPreviewSrc" src="" alt="Preview">
 </div>
 
-<!-- SETUP SCREEN - Hidden (Firebase URL is hardcoded) -->
-<div class="setup-container" id="setupScreen" style="display:none;"></div>
-
 <!-- AUTH SCREEN -->
 <div class="auth-container" id="authScreen">
   <div class="auth-box">
@@ -1076,6 +1081,18 @@ body {
       </div>
       <button class="auth-btn" onclick="handleLogin()" id="loginBtn">⚡ INITIATE ACCESS ⚡</button>
       <div class="auth-error" id="loginError"></div>
+      
+      <div class="auth-divider"><span>OR</span></div>
+      
+      <button class="google-btn" onclick="handleGoogleSignIn()" id="googleBtn">
+        <svg viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
     </div>
 
     <!-- Register Form -->
@@ -1095,6 +1112,18 @@ body {
       <button class="auth-btn" onclick="handleRegister()" id="regBtn">🔐 CREATE IDENTITY 🔐</button>
       <div class="auth-error" id="regError"></div>
       <div class="auth-success" id="regSuccess"></div>
+      
+      <div class="auth-divider"><span>OR</span></div>
+      
+      <button class="google-btn" onclick="handleGoogleSignIn()" id="googleBtnReg">
+        <svg viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
     </div>
     
     <div style="margin-top: 16px; text-align: center;">
@@ -1139,7 +1168,7 @@ body {
         <button class="sidebar-tab" id="tabSearch" onclick="switchSidebarTab('search')">FIND USERS</button>
       </div>
 
-      <!-- Add Friend / Search by Username -->
+      <!-- Add Friend -->
       <div class="sidebar-search" id="searchArea">
         <div class="search-input-wrap">
           <input type="text" id="addFriendInput" placeholder="Enter exact username...">
@@ -1231,17 +1260,40 @@ body {
   </div>
 </div>
 
-<!-- Firebase URL is hardcoded - no config modal needed -->
-
 <script>
 // ============================================================
 // DARK CHAT — Global Real-Time Chat Application
-// Firebase Realtime Database for cross-device communication
+// Firebase Realtime Database + Firebase Auth
 // ============================================================
 
 // ---- Firebase Config ----
-// HARDCODED DATABASE URL - No setup required
 const FIREBASE_URL = 'https://darkchat-5991c-default-rtdb.firebaseio.com';
+
+// Firebase Auth Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDummy-replace-with-your-key",
+  authDomain: "darkchat-5991c.firebaseapp.com",
+  databaseURL: FIREBASE_URL,
+  projectId: "darkchat-5991c",
+  storageBucket: "darkchat-5991c.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:0000000000000000"
+};
+
+// Initialize Firebase
+let firebaseApp = null;
+let firebaseAuth = null;
+let googleProvider = null;
+
+try {
+  firebaseApp = firebase.initializeApp(firebaseConfig);
+  firebaseAuth = firebase.auth();
+  googleProvider = new firebase.auth.GoogleAuthProvider();
+  googleProvider.addScope('email');
+  googleProvider.addScope('profile');
+} catch(e) {
+  console.warn('Firebase Auth init error:', e);
+}
 
 // ---- State ----
 let currentUser = null;
@@ -1412,8 +1464,6 @@ async function fbUpdate(path, data) {
 }
 
 // ---- Configuration ----
-// Firebase URL is hardcoded - no setup functions needed
-
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
@@ -1454,6 +1504,8 @@ async function handleRegister() {
     const existing = await fbGet(`users/${user}`);
     if (existing) { 
       errEl.textContent = '⚠ Username already taken'; 
+      btn.disabled = false;
+      btn.textContent = '🔐 CREATE IDENTITY 🔐';
       return; 
     }
 
@@ -1464,7 +1516,8 @@ async function handleRegister() {
       avatar: '',
       status: 'Online',
       created: Date.now(),
-      lastSeen: Date.now()
+      lastSeen: Date.now(),
+      authType: 'password'
     });
 
     sucEl.textContent = '✓ Identity created successfully! You may now login.';
@@ -1488,24 +1541,42 @@ async function handleLogin() {
   
   errEl.textContent = '';
 
-  if (!user || !pass) { errEl.textContent = '⚠ Enter username and password'; return; }
+  if (!user || !pass) { 
+    errEl.textContent = '⚠ Enter username and password'; 
+    return; 
+  }
 
   btn.disabled = true;
   btn.textContent = '⏳ AUTHENTICATING...';
 
   try {
     const userData = await fbGet(`users/${user}`);
+    
     if (!userData) { 
       errEl.textContent = '⚠ User not found'; 
+      btn.disabled = false;
+      btn.textContent = '⚡ INITIATE ACCESS ⚡';
       return; 
     }
+    
+    // Check if this is a Google account
+    if (userData.authType === 'google') {
+      errEl.textContent = '⚠ This account uses Google Sign-In';
+      btn.disabled = false;
+      btn.textContent = '⚡ INITIATE ACCESS ⚡';
+      return;
+    }
+    
     if (userData.password !== hashPassword(pass)) { 
       errEl.textContent = '⚠ Invalid password'; 
+      btn.disabled = false;
+      btn.textContent = '⚡ INITIATE ACCESS ⚡';
       return; 
     }
 
     currentUser = userData;
     localStorage.setItem('dc_current_user', user);
+    localStorage.setItem('dc_auth_type', 'password');
 
     // Update lastSeen
     await fbUpdate(`users/${user}`, { lastSeen: Date.now() });
@@ -1520,17 +1591,117 @@ async function handleLogin() {
   }
 }
 
+// ---- Google Authentication ----
+async function handleGoogleSignIn() {
+  const btn = document.getElementById('googleBtn');
+  const btnReg = document.getElementById('googleBtnReg');
+  const errEl = document.getElementById('loginError');
+  
+  if (!firebaseAuth || !googleProvider) {
+    errEl.textContent = '⚠ Google Sign-In not configured. Please use username/password.';
+    showToast('Google Sign-In requires Firebase Auth configuration', true);
+    return;
+  }
+  
+  btn.disabled = true;
+  btnReg.disabled = true;
+  
+  try {
+    const result = await firebaseAuth.signInWithPopup(googleProvider);
+    const googleUser = result.user;
+    
+    // Create a username from email
+    const email = googleUser.email;
+    const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    let username = baseUsername;
+    
+    // Check if user already exists with this Google ID
+    const allUsers = await fbGet('users') || {};
+    let existingUser = null;
+    
+    for (const [uname, udata] of Object.entries(allUsers)) {
+      if (udata.googleId === googleUser.uid) {
+        existingUser = { username: uname, ...udata };
+        break;
+      }
+    }
+    
+    if (existingUser) {
+      // Existing Google user - log them in
+      currentUser = existingUser;
+      localStorage.setItem('dc_current_user', existingUser.username);
+      localStorage.setItem('dc_auth_type', 'google');
+      await fbUpdate(`users/${existingUser.username}`, { lastSeen: Date.now() });
+      enterApp();
+    } else {
+      // New Google user - create account
+      // Ensure unique username
+      let counter = 1;
+      while (allUsers[username]) {
+        username = baseUsername + counter;
+        counter++;
+      }
+      
+      const newUser = {
+        username: username,
+        password: '', // No password for Google users
+        email: email,
+        googleId: googleUser.uid,
+        avatar: googleUser.photoURL || '',
+        status: 'Online',
+        created: Date.now(),
+        lastSeen: Date.now(),
+        authType: 'google'
+      };
+      
+      await fbSet(`users/${username}`, newUser);
+      
+      currentUser = newUser;
+      localStorage.setItem('dc_current_user', username);
+      localStorage.setItem('dc_auth_type', 'google');
+      
+      showToast(`Welcome! Your username is: ${username}`);
+      enterApp();
+    }
+    
+  } catch(e) {
+    console.error('Google Sign-In error:', e);
+    if (e.code === 'auth/popup-closed-by-user') {
+      // User closed popup - don't show error
+    } else if (e.code === 'auth/unauthorized-domain') {
+      errEl.textContent = '⚠ Domain not authorized for Google Sign-In';
+      showToast('Add this domain to Firebase Auth authorized domains', true);
+    } else {
+      errEl.textContent = `⚠ Google Sign-In failed: ${e.message}`;
+    }
+  } finally {
+    btn.disabled = false;
+    btnReg.disabled = false;
+  }
+}
+
 function handleLogout() {
   if (syncInterval) clearInterval(syncInterval);
+  
+  // Sign out from Firebase Auth if using Google
+  if (firebaseAuth && localStorage.getItem('dc_auth_type') === 'google') {
+    firebaseAuth.signOut().catch(e => console.warn('Firebase signout error:', e));
+  }
+  
   currentUser = null;
   activeChatUser = null;
   currentChatId = null;
   renderedMessageIds.clear();
   localStorage.removeItem('dc_current_user');
+  localStorage.removeItem('dc_auth_type');
   document.getElementById('authScreen').classList.add('active');
   document.getElementById('appContainer').classList.remove('active');
   document.getElementById('chatView').style.display = 'none';
   document.getElementById('chatEmpty').style.display = 'flex';
+  
+  // Clear input fields
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
 }
 
 async function autoLogin() {
@@ -1551,7 +1722,6 @@ async function autoLogin() {
 }
 
 async function enterApp() {
-  document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('authScreen').classList.remove('active');
   document.getElementById('appContainer').classList.add('active');
   updateMyProfile();
@@ -1574,7 +1744,7 @@ function updateMyProfile() {
 function setAvatarContent(elId, avatarData, username) {
   const el = document.getElementById(elId);
   if (!el) return;
-  if (avatarData && avatarData.startsWith('data:')) {
+  if (avatarData && (avatarData.startsWith('data:') || avatarData.startsWith('http'))) {
     el.innerHTML = `<img src="${avatarData}" alt="avatar">`;
   } else {
     el.textContent = username ? username[0].toUpperCase() : '💀';
@@ -1675,7 +1845,7 @@ async function renderSearchResults(results) {
     }
     
     const isOnline = user.lastSeen && (Date.now() - user.lastSeen < 30000);
-    const avatarContent = user.avatar && user.avatar.startsWith('data:')
+    const avatarContent = user.avatar && (user.avatar.startsWith('data:') || user.avatar.startsWith('http'))
       ? `<img src="${user.avatar}" alt="">`
       : user.username[0].toUpperCase();
     
@@ -1704,7 +1874,7 @@ async function sendFriendRequestTo(targetUsername) {
       created: Date.now()
     });
     showToast(`Request sent to ${targetUsername}`);
-    handleGlobalSearch(); // Refresh results
+    handleGlobalSearch();
     loadRequests();
   } catch(e) {
     showToast('Failed to send request', true);
@@ -1725,7 +1895,6 @@ async function sendFriendRequest() {
   }
 
   try {
-    // Check if user exists
     const targetUser = await fbGet(`users/${target}`);
     if (!targetUser) { 
       showToast('User not found. Check the username.', true); 
@@ -1734,7 +1903,6 @@ async function sendFriendRequest() {
 
     const chatId = getChatId(currentUser.username, target);
     
-    // Check if already friends or pending
     const friendship = await fbGet(`friends/${chatId}`);
     if (friendship && friendship.status === 'accepted') { 
       showToast('Already friends with this user', true); 
@@ -1745,7 +1913,6 @@ async function sendFriendRequest() {
       return; 
     }
 
-    // Send request
     await fbSet(`friends/${chatId}`, {
       from: currentUser.username,
       to: target,
@@ -1829,7 +1996,7 @@ function renderContacts(contacts) {
   }
   list.innerHTML = contacts.map(c => {
     const isActive = activeChatUser === c.username ? 'active' : '';
-    const avatarContent = c.avatar && c.avatar.startsWith('data:')
+    const avatarContent = c.avatar && (c.avatar.startsWith('data:') || c.avatar.startsWith('http'))
       ? `<img src="${c.avatar}" alt="">`
       : (c.username[0] || '?').toUpperCase();
     const isOnline = c.lastSeen && (Date.now() - c.lastSeen < 30000);
@@ -1951,17 +2118,16 @@ async function openChat(username, chatId) {
     document.getElementById('chatUserName').textContent = username;
   }
 
-  // Mark contacts as active
   document.querySelectorAll('.contact-item').forEach(el => {
     el.classList.toggle('active', el.querySelector('.contact-name')?.textContent === username);
   });
 
-  // Mobile: hide sidebar
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.add('hidden');
   }
 
   await loadMessages();
+  await markMessagesAsRead();
   document.getElementById('messageInput').focus();
 }
 
@@ -1979,8 +2145,13 @@ async function loadMessages() {
 
     let hasNewMessages = false;
 
-    msgArr.forEach(msg => {
-      if (renderedMessageIds.has(msg.id)) return;
+    for (const msg of msgArr) {
+      if (renderedMessageIds.has(msg.id)) {
+        // Update existing message's read status
+        updateMessageReadStatus(msg);
+        continue;
+      }
+      
       renderedMessageIds.add(msg.id);
       hasNewMessages = true;
 
@@ -1997,24 +2168,29 @@ async function loadMessages() {
         content += `<div>${escapeHtml(msg.text)}</div>`;
       }
 
+      // Read receipt status for sent messages
+      let statusHtml = '';
+      if (isSent) {
+        statusHtml = getReadStatusHtml(msg);
+      }
+
       div.innerHTML = `
         ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}</div>` : ''}
         <div class="msg-bubble">${content}</div>
-        <div class="msg-time">${formatTime(msg.timestamp)}</div>
+        <div class="msg-meta">
+          <span class="msg-time">${formatTime(msg.timestamp)}</span>
+          ${statusHtml}
+        </div>
       `;
       container.appendChild(div);
-    });
+    }
 
-    // Handle scrolling for new messages
     if (hasNewMessages) {
       if (prevCount === 0) {
-        // First load - scroll to bottom
         container.scrollTop = container.scrollHeight;
       } else if (wasAtBottom) {
-        // Was at bottom - keep at bottom
         container.scrollTop = container.scrollHeight;
       } else {
-        // Not at bottom - show indicator
         const lastMsg = msgArr[msgArr.length - 1];
         if (lastMsg && lastMsg.sender !== currentUser.username) {
           document.getElementById('newMsgIndicator').style.display = 'block';
@@ -2024,6 +2200,80 @@ async function loadMessages() {
     
   } catch(e) {
     console.warn('Failed to load messages:', e);
+  }
+}
+
+function getReadStatusHtml(msg) {
+  if (msg.readBy && msg.readBy[activeChatUser]) {
+    return `<span class="msg-status seen-status" title="Seen at ${formatTime(msg.readBy[activeChatUser])}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6L9 17l-5-5"/>
+        <path d="M15 6L4 17"/>
+      </svg>
+      SEEN
+    </span>`;
+  } else if (msg.delivered) {
+    return `<span class="msg-status delivered-status" title="Delivered">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </span>`;
+  } else {
+    return `<span class="msg-status sent-status" title="Sent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </span>`;
+  }
+}
+
+function updateMessageReadStatus(msg) {
+  const msgEl = document.querySelector(`.message[data-id="${msg.id}"]`);
+  if (!msgEl) return;
+  
+  const isSent = msg.sender === currentUser.username;
+  if (!isSent) return;
+  
+  const metaEl = msgEl.querySelector('.msg-meta');
+  if (!metaEl) return;
+  
+  const existingStatus = metaEl.querySelector('.msg-status');
+  const newStatusHtml = getReadStatusHtml(msg);
+  
+  // Only update if status changed
+  if (existingStatus) {
+    const isCurrentlySeen = existingStatus.classList.contains('seen-status');
+    const shouldBeSeen = msg.readBy && msg.readBy[activeChatUser];
+    
+    if (!isCurrentlySeen && shouldBeSeen) {
+      existingStatus.outerHTML = newStatusHtml;
+    }
+  }
+}
+
+async function markMessagesAsRead() {
+  if (!currentChatId || !activeChatUser) return;
+  
+  try {
+    const messages = await fbGet(`messages/${currentChatId}`) || {};
+    const updates = {};
+    
+    for (const [msgId, msg] of Object.entries(messages)) {
+      // Only mark messages from the other user as read
+      if (msg.sender !== currentUser.username) {
+        if (!msg.readBy || !msg.readBy[currentUser.username]) {
+          updates[`messages/${currentChatId}/${msgId}/readBy/${currentUser.username}`] = Date.now();
+        }
+      }
+    }
+    
+    // Batch update all unread messages
+    for (const [path, value] of Object.entries(updates)) {
+      await fbSet(path, value);
+    }
+    
+  } catch(e) {
+    console.warn('Failed to mark messages as read:', e);
   }
 }
 
@@ -2043,20 +2293,21 @@ async function sendMessage() {
   const msg = {
     sender: currentUser.username,
     text: text,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    delivered: true,
+    readBy: {}
   };
 
   input.value = '';
   input.style.height = 'auto';
   
-  // Clear typing indicator
   clearTyping();
 
   try {
     await fbPush(`messages/${currentChatId}`, msg);
     await loadMessages();
     scrollToBottom();
-    loadContacts(); // Update last message preview
+    loadContacts();
   } catch(e) {
     showToast('Failed to send message', true);
   }
@@ -2082,7 +2333,9 @@ async function handleImageSelect(event) {
       sender: currentUser.username,
       image: e.target.result,
       text: '',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      delivered: true,
+      readBy: {}
     };
     try {
       await fbPush(`messages/${currentChatId}`, msg);
@@ -2111,12 +2364,10 @@ async function handleTyping() {
   
   if (!currentChatId || !currentUser) return;
   
-  // Set typing status
   try {
     await fbSet(`typing/${currentChatId}/${currentUser.username}`, Date.now());
   } catch(e) {}
   
-  // Clear after 3 seconds of no typing
   if (typingTimeout) clearTimeout(typingTimeout);
   typingTimeout = setTimeout(clearTyping, 3000);
 }
@@ -2163,31 +2414,23 @@ function startSync() {
 
   syncInterval = setInterval(async () => {
     try {
-      // Update our lastSeen (heartbeat)
       await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
 
-      // Reload current chat messages silently
       if (currentChatId) {
         await loadMessages();
+        await markMessagesAsRead();
         await checkTypingStatus();
       }
 
-      // Reload contacts (for last message preview and online status)
       await loadContacts();
-
-      // Reload requests
       await loadRequests();
-      
-      // Refresh all users cache
       await loadAllUsers();
 
-      // Update current user data
       const freshUser = await fbGet(`users/${currentUser.username}`);
       if (freshUser) {
         currentUser = freshUser;
       }
 
-      // Update chat partner status if in chat
       if (activeChatUser) {
         const partnerData = await fbGet(`users/${activeChatUser}`);
         if (partnerData) {
@@ -2243,9 +2486,6 @@ function initMatrix() {
 // ---- Boot Sequence ----
 window.addEventListener('DOMContentLoaded', async () => {
   initMatrix();
-  
-  // Firebase URL is hardcoded - skip setup screen entirely
-  document.getElementById('setupScreen').style.display = 'none';
   
   // Try auto-login
   const loggedIn = await autoLogin();
