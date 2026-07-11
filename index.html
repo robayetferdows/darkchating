@@ -1357,13 +1357,15 @@ body {
       <div class="avatar" id="profileAvatar" onclick="document.getElementById('avatarInput').click()" title="Click to change photo">💀</div>
       <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
       <small>[ CLICK AVATAR TO CHANGE ]</small>
+      <!-- Username displayed with badge below avatar -->
+      <div class="profile-username-display" id="profileUsernameDisplay" style="margin-top: 10px; font-size: 16px; color: var(--green-primary);"></div>
     </div>
     
     <!-- Username with change option -->
     <div class="form-group">
-      <label>> Username <span id="verifiedBadgeProfile"></span></label>
+      <label>> Change Username</label>
       <div class="username-change-wrap">
-        <input type="text" id="profileUsername" placeholder="username">
+        <input type="text" id="profileUsername" placeholder="new_username">
         <button class="small-btn" onclick="changeUsername()" id="changeUsernameBtn">CHANGE</button>
       </div>
       <small id="usernameChangeCooldown" style="color: var(--text-dim); font-size: 9px;"></small>
@@ -1895,7 +1897,17 @@ async function enterApp() {
 
 // ---- Profile ----
 function updateMyProfile() {
-  document.getElementById('myUsername').textContent = currentUser.username;
+  // Update sidebar username with verification badge
+  const verifiedBadge = currentUser.verified ? '<span class="verified-badge-small">✓</span>' : '';
+  document.getElementById('myUsername').innerHTML = escapeHtml(currentUser.username) + verifiedBadge;
+  
+  // Update profile modal username display with badge
+  const profileDisplay = document.getElementById('profileUsernameDisplay');
+  if (profileDisplay) {
+    const largeBadge = currentUser.verified ? ' <span class="verified-badge">✓</span>' : '';
+    profileDisplay.innerHTML = escapeHtml(currentUser.username) + largeBadge;
+  }
+  
   setAvatarContent('myAvatar', currentUser.avatar, currentUser.username);
   setAvatarContent('profileAvatar', currentUser.avatar, currentUser.username);
   document.getElementById('profileUsername').value = currentUser.username;
@@ -2169,7 +2181,8 @@ async function loadContacts() {
         lastSeen: friendData.lastSeen || 0,
         lastMessage: lastMsg ? (lastMsg.image ? '📷 Image' : lastMsg.text) : '',
         lastTime: lastMsg ? lastMsg.timestamp : data.acceptedAt || 0,
-        unread: 0
+        unread: 0,
+        verified: friendData.verified || false
       });
     }
 
@@ -2303,7 +2316,11 @@ async function openChat(username, chatId) {
 
   try {
     const userData = await fbGet(`users/${username}`) || {};
-    document.getElementById('chatUserName').textContent = username;
+    
+    // Show username with verification badge in chat header
+    const verifiedBadge = userData.verified ? ' <span class="verified-badge-small">✓</span>' : '';
+    document.getElementById('chatUserName').innerHTML = escapeHtml(username) + verifiedBadge;
+    
     const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 30000);
     document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : (userData.lastSeen ? `Last seen ${formatTime(userData.lastSeen)}` : 'Offline');
 
@@ -2313,7 +2330,12 @@ async function openChat(username, chatId) {
   }
 
   document.querySelectorAll('.contact-item').forEach(el => {
-    el.classList.toggle('active', el.querySelector('.contact-name')?.textContent === username);
+    const nameEl = el.querySelector('.contact-name');
+    if (nameEl) {
+      // Compare just the text, ignoring any badges
+      const nameText = nameEl.textContent || nameEl.innerText;
+      el.classList.toggle('active', nameText.trim() === username);
+    }
   });
 
   if (window.innerWidth <= 768) {
@@ -2336,6 +2358,12 @@ async function loadMessages() {
     const container = document.getElementById('messagesContainer');
     const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
     const prevCount = renderedMessageIds.size;
+
+    // Get sender verification status for received messages
+    let senderVerified = false;
+    if (activeChatUser && allUsersCache[activeChatUser]) {
+      senderVerified = allUsersCache[activeChatUser].verified || false;
+    }
 
     let hasNewMessages = false;
 
@@ -2368,8 +2396,11 @@ async function loadMessages() {
         statusHtml = getReadStatusHtml(msg);
       }
 
+      // Sender badge for received messages
+      const senderBadge = (!isSent && senderVerified) ? '<span class="verified-badge-small">✓</span>' : '';
+
       div.innerHTML = `
-        ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}</div>` : ''}
+        ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}${senderBadge}</div>` : ''}
         <div class="msg-bubble">${content}</div>
         <div class="msg-meta">
           <span class="msg-time">${formatTime(msg.timestamp)}</span>
@@ -2602,20 +2633,58 @@ function goBackToSidebar() {
   document.getElementById('chatEmpty').style.display = 'flex';
 }
 
-// ---- Manual Refresh (Auto-refresh disabled) ----
+// ---- Seamless Auto-Refresh (2-second interval) ----
 function startSync() {
-  // Auto-refresh disabled - users must manually refresh using the button
-  // Just update lastSeen once on start
-  if (currentUser) {
-    fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() }).catch(() => {});
-  }
+  if (syncInterval) clearInterval(syncInterval);
+
+  // Seamless background sync - no visible refresh
+  syncInterval = setInterval(async () => {
+    try {
+      // Silent lastSeen update
+      await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
+
+      // Silently update messages if in a chat
+      if (currentChatId) {
+        await loadMessages();
+        await markMessagesAsRead();
+        await checkTypingStatus();
+      }
+
+      // Silently refresh contacts and requests
+      await loadContacts();
+      await loadRequests();
+      await loadAllUsers();
+
+      // Refresh current user data
+      const freshUser = await fbGet(`users/${currentUser.username}`);
+      if (freshUser) {
+        currentUser = freshUser;
+      }
+
+      // Update chat partner status if in chat
+      if (activeChatUser) {
+        const partnerData = await fbGet(`users/${activeChatUser}`);
+        if (partnerData) {
+          const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
+          const verifiedBadge = partnerData.verified ? ' <span class="verified-badge-small">✓</span>' : '';
+          document.getElementById('chatUserName').innerHTML = escapeHtml(activeChatUser) + verifiedBadge;
+          document.getElementById('chatUserStatus').textContent = isOnline 
+            ? '● Online' 
+            : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
+        }
+      }
+      
+    } catch (e) {
+      console.warn('Sync error:', e);
+    }
+  }, 2000);
 }
 
-// Manual refresh function
+// Manual refresh function (button still available for immediate refresh)
 async function manualRefresh() {
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('refreshing');
-  btn.textContent = '⏳ REFRESHING...';
+  btn.textContent = '⏳ ...';
   
   try {
     await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
@@ -2640,6 +2709,8 @@ async function manualRefresh() {
       const partnerData = await fbGet(`users/${activeChatUser}`);
       if (partnerData) {
         const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
+        const verifiedBadge = partnerData.verified ? ' <span class="verified-badge-small">✓</span>' : '';
+        document.getElementById('chatUserName').innerHTML = escapeHtml(activeChatUser) + verifiedBadge;
         document.getElementById('chatUserStatus').textContent = isOnline 
           ? '● Online' 
           : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
@@ -2810,17 +2881,26 @@ async function verifyAccount() {
 function updateVerificationUI() {
   const notVerified = document.getElementById('notVerifiedSection');
   const verified = document.getElementById('alreadyVerifiedSection');
-  const profileBadge = document.getElementById('verifiedBadgeProfile');
+  const profileDisplay = document.getElementById('profileUsernameDisplay');
   
   if (currentUser && currentUser.verified) {
     notVerified.style.display = 'none';
     verified.style.display = 'block';
-    profileBadge.innerHTML = '<span class="verified-badge">✓</span>';
+    // Update username display with badge
+    if (profileDisplay) {
+      profileDisplay.innerHTML = escapeHtml(currentUser.username) + ' <span class="verified-badge">✓</span>';
+    }
   } else {
     notVerified.style.display = 'block';
     verified.style.display = 'none';
-    profileBadge.innerHTML = '';
+    // Update username display without badge
+    if (profileDisplay) {
+      profileDisplay.innerHTML = escapeHtml(currentUser.username);
+    }
   }
+  
+  // Also update sidebar username display
+  updateMyProfile();
 }
 
 // ---- Matrix Rain Background ----
