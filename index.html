@@ -2507,30 +2507,50 @@ body {
   margin: 0;
 }
 
-/* Unsend button on messages */
-.msg-unsend-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px; height: 28px;
-  border-radius: 50%;
+/* Long-press context menu on messages */
+.msg-context-menu {
+  position: fixed;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  color: var(--text-dim);
-  font-size: 12px;
-  cursor: pointer;
+  border-radius: 10px;
+  min-width: 180px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  animation: contextPop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   display: none;
+}
+@keyframes contextPop {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+.msg-context-menu.active { display: block; }
+.msg-context-menu .ctx-item {
+  padding: 11px 16px;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 4;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.12s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
 }
-.message.sent:hover .msg-unsend-btn { display: flex; }
-.msg-unsend-btn:hover {
-  color: var(--red-primary);
-  border-color: var(--red-primary);
-  background: rgba(255,0,64,0.1);
+.msg-context-menu .ctx-item:hover { background: rgba(0,255,65,0.05); }
+.msg-context-menu .ctx-item .ctx-icon { font-size: 15px; width: 22px; text-align: center; }
+.msg-context-menu .ctx-item.danger { color: var(--red-primary); }
+.msg-context-menu .ctx-item.danger:hover { background: rgba(255,0,64,0.08); }
+.msg-context-menu .ctx-sep { height: 1px; background: var(--border-color); }
+
+/* Long-press visual feedback on message */
+.message.long-pressing .msg-bubble {
+  box-shadow: 0 0 0 2px var(--green-dim);
+  transition: box-shadow 0.2s;
 }
-.message.sent .msg-unsend-btn { right: -36px; }
 
 /* Unsent message placeholder */
 .msg-unsent {
@@ -3187,6 +3207,9 @@ body {
     </div>
   </div>
 </div>
+
+<!-- MESSAGE CONTEXT MENU (long-press) -->
+<div class="msg-context-menu" id="msgContextMenu"></div>
 
 <!-- CONFIRM DIALOG -->
 <div class="confirm-overlay" id="confirmOverlay" onclick="if(event.target===this) closeConfirm()">
@@ -4649,15 +4672,9 @@ async function loadMessages() {
         `;
       }
 
-      // Unsend button (only on own messages that aren't already unsent)
-      const unsendBtn = (isSent && !msg.unsent) 
-        ? `<button class="msg-unsend-btn" onclick="event.stopPropagation(); unsendMessage('${msg.id}')" title="Unsend">🗑</button>` 
-        : '';
-
       div.innerHTML = `
         ${!isSent ? `<div class="msg-sender">${escapeHtml(senderDisplayName)}${senderBadge}</div>` : ''}
         <button class="reply-btn" data-reply-id="${msg.id}" onclick="handleReplyClick(this)">↩</button>
-        ${unsendBtn}
         <div class="msg-bubble">${replyQuoteHtml}${content}</div>
         <div class="msg-meta">
           <span class="msg-time">${formatTime(msg.timestamp)}</span>
@@ -4677,6 +4694,11 @@ async function loadMessages() {
       
       // Attach swipe-to-reply gesture
       attachSwipeToReply(div, msg.id);
+      
+      // Attach long-press context menu (skip for unsent messages)
+      if (!msg.unsent) {
+        attachLongPress(div, msg.id, isSent);
+      }
     }
 
     if (hasNewMessages) {
@@ -7660,6 +7682,148 @@ function prevStory() {
 // ---- CHAT MANAGEMENT (Unsend, Block, Delete Chat) ----
 // ============================================================
 
+// ---- Long-Press Context Menu on Messages ----
+let longPressTimer = null;
+let contextMsgId = null;
+let contextIsSent = false;
+
+function attachLongPress(msgEl, msgId, isSent) {
+  let pressTimer = null;
+  let didLongPress = false;
+  let startX = 0, startY = 0;
+  
+  function onStart(e) {
+    didLongPress = false;
+    const point = e.touches ? e.touches[0] : e;
+    startX = point.clientX;
+    startY = point.clientY;
+    
+    pressTimer = setTimeout(() => {
+      didLongPress = true;
+      msgEl.classList.add('long-pressing');
+      
+      // Vibrate on mobile if supported
+      if (navigator.vibrate) navigator.vibrate(30);
+      
+      showMsgContextMenu(msgEl, msgId, isSent, point.clientX, point.clientY);
+    }, 500); // 500ms hold to trigger
+  }
+  
+  function onMove(e) {
+    if (!pressTimer) return;
+    const point = e.touches ? e.touches[0] : e;
+    const dx = Math.abs(point.clientX - startX);
+    const dy = Math.abs(point.clientY - startY);
+    // Cancel if finger moved too much
+    if (dx > 10 || dy > 10) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+      msgEl.classList.remove('long-pressing');
+    }
+  }
+  
+  function onEnd(e) {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+    msgEl.classList.remove('long-pressing');
+    
+    // Prevent click/tap events firing after long-press
+    if (didLongPress) {
+      e.preventDefault();
+      e.stopPropagation();
+      didLongPress = false;
+    }
+  }
+  
+  msgEl.addEventListener('touchstart', onStart, { passive: true });
+  msgEl.addEventListener('touchmove', onMove, { passive: true });
+  msgEl.addEventListener('touchend', onEnd, { passive: false });
+  msgEl.addEventListener('touchcancel', onEnd, { passive: true });
+  
+  // Right-click on desktop also opens the menu
+  msgEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showMsgContextMenu(msgEl, msgId, isSent, e.clientX, e.clientY);
+  });
+}
+
+function showMsgContextMenu(msgEl, msgId, isSent, x, y) {
+  contextMsgId = msgId;
+  contextIsSent = isSent;
+  
+  const menu = document.getElementById('msgContextMenu');
+  
+  // Build menu items dynamically
+  let items = '';
+  
+  items += `<button class="ctx-item" onclick="ctxReply()"><span class="ctx-icon">↩</span> Reply</button>`;
+  items += `<button class="ctx-item" onclick="ctxReact()"><span class="ctx-icon">❤️</span> Love</button>`;
+  
+  if (isSent) {
+    items += `<div class="ctx-sep"></div>`;
+    items += `<button class="ctx-item danger" onclick="ctxUnsend()"><span class="ctx-icon">🗑</span> Unsend for Everyone</button>`;
+  }
+  
+  menu.innerHTML = items;
+  
+  // Position the menu near the tap/click point
+  menu.style.left = '0';
+  menu.style.top = '0';
+  menu.classList.add('active');
+  
+  const menuRect = menu.getBoundingClientRect();
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+  
+  let posX = x;
+  let posY = y;
+  
+  // Keep within viewport
+  if (posX + menuRect.width > viewW - 10) posX = viewW - menuRect.width - 10;
+  if (posX < 10) posX = 10;
+  if (posY + menuRect.height > viewH - 10) posY = viewH - menuRect.height - 10;
+  if (posY < 10) posY = 10;
+  
+  menu.style.left = posX + 'px';
+  menu.style.top = posY + 'px';
+  
+  // Close on any outside click/tap
+  setTimeout(() => {
+    document.addEventListener('click', closeMsgContextMenu, { once: true });
+    document.addEventListener('touchstart', closeMsgContextMenu, { once: true });
+  }, 10);
+}
+
+function closeMsgContextMenu() {
+  document.getElementById('msgContextMenu').classList.remove('active');
+  document.querySelectorAll('.message.long-pressing').forEach(el => el.classList.remove('long-pressing'));
+}
+
+// Context menu actions
+function ctxReply() {
+  closeMsgContextMenu();
+  if (contextMsgId) {
+    const btn = document.querySelector(`[data-reply-id="${contextMsgId}"]`);
+    if (btn) handleReplyClick(btn);
+  }
+}
+
+function ctxReact() {
+  closeMsgContextMenu();
+  if (contextMsgId) {
+    toggleMsgReaction(contextMsgId);
+    const msgEl = document.querySelector(`.message[data-id="${contextMsgId}"]`);
+    if (msgEl) spawnHeartBurst(msgEl);
+  }
+}
+
+function ctxUnsend() {
+  closeMsgContextMenu();
+  if (contextMsgId && contextIsSent) {
+    unsendMessage(contextMsgId);
+  }
+}
+
 // ---- Chat Dropdown Menu ----
 function toggleChatMenu() {
   const dropdown = document.getElementById('chatDropdown');
@@ -7717,8 +7881,8 @@ async function unsendMessage(msgId) {
             <div class="msg-bubble"><div class="msg-unsent">🚫 You unsent this message</div></div>
             <div class="msg-meta"><span class="msg-time">${formatTime(Date.now())}</span></div>
           `;
-          // Remove swipe/reply/unsend buttons
-          const btns = msgEl.querySelectorAll('.reply-btn, .msg-unsend-btn, .msg-reaction, .swipe-reply-icon');
+          // Remove interactive elements from unsent message
+          const btns = msgEl.querySelectorAll('.reply-btn, .msg-reaction, .swipe-reply-icon');
           btns.forEach(b => b.remove());
         }
         
@@ -7828,22 +7992,40 @@ function confirmDeleteChat() {
   
   showConfirm(
     '🗑️',
-    'Delete entire chat?',
-    `All messages with ${activeChatUser} will be permanently deleted for everyone. This cannot be undone.`,
-    'Delete Chat',
+    'Delete entire conversation?',
+    `This will permanently delete all messages with ${activeChatUser} for BOTH of you, and remove each other from your contact lists. This cannot be undone.`,
+    'Delete for Both',
     async () => {
       try {
-        await fbDelete(`messages/${currentChatId}`);
+        const chatId = currentChatId;
+        const partner = activeChatUser;
         
-        // Clear UI
+        // 1. Delete all messages
+        await fbDelete(`messages/${chatId}`);
+        
+        // 2. Delete the friendship so both contact lists update
+        await fbDelete(`friends/${chatId}`);
+        
+        // 3. Delete any typing indicators
+        await fbDelete(`typing/${chatId}`);
+        
+        // 4. Clear local UI
         document.getElementById('messagesContainer').innerHTML = '';
         renderedMessageIds.clear();
         allLoadedMessages = {};
         
-        showToast('Chat deleted');
-        loadContacts();
+        // 5. Go back to empty chat view
+        activeChatUser = null;
+        currentChatId = null;
+        document.getElementById('chatView').style.display = 'none';
+        document.getElementById('chatEmpty').style.display = 'flex';
+        
+        showToast(`Conversation with ${partner} deleted for both sides`);
+        await loadContacts();
+        await loadRequests();
+        
       } catch(e) {
-        showToast('Failed to delete chat', true);
+        showToast('Failed to delete conversation', true);
       }
     }
   );
