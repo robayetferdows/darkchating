@@ -863,6 +863,263 @@ body {
   color: var(--green-primary);
 }
 
+/* Media action buttons */
+.media-btn {
+  width: 36px; height: 36px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.media-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+.media-btn.recording {
+  background: rgba(255,0,64,0.2);
+  border-color: var(--red-primary);
+  color: var(--red-primary);
+  animation: pulse-red 1s infinite;
+}
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 5px rgba(255,0,64,0.3); }
+  50% { box-shadow: 0 0 15px rgba(255,0,64,0.5); }
+}
+
+/* Media buttons row */
+.media-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Media preview area */
+.media-preview-area {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  display: none;
+}
+.media-preview-area.active {
+  display: block;
+}
+.media-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.media-preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+.media-preview-item img,
+.media-preview-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-preview-item .remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255,0,64,0.9);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.media-preview-item .video-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Voice recording UI */
+.voice-recording-ui {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--red-primary);
+  border-radius: 6px;
+}
+.voice-recording-ui.active {
+  display: flex;
+}
+.voice-recording-ui .recording-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--red-primary);
+  border-radius: 50%;
+  animation: pulse-red 1s infinite;
+}
+.voice-recording-ui .recording-time {
+  font-size: 14px;
+  color: var(--red-primary);
+  font-family: 'Share Tech Mono', monospace;
+}
+.voice-recording-ui .recording-text {
+  color: var(--text-secondary);
+  font-size: 11px;
+  flex: 1;
+}
+.voice-recording-ui .cancel-recording {
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Message media styles */
+.msg-media-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.msg-media-grid.single img,
+.msg-media-grid.single video {
+  max-width: 250px;
+  max-height: 300px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.msg-media-grid.multiple {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  max-width: 260px;
+}
+.msg-media-grid.multiple img,
+.msg-media-grid.multiple video {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.msg-media-grid.multiple.three-items {
+  grid-template-columns: repeat(3, 1fr);
+}
+.msg-media-grid.multiple.three-items img,
+.msg-media-grid.multiple.three-items video {
+  height: 80px;
+}
+
+/* Video player in message */
+.msg-video-container {
+  position: relative;
+  max-width: 280px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+.msg-video-container video {
+  width: 100%;
+  max-height: 300px;
+  display: block;
+}
+.msg-video-container .play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.msg-video-container .play-overlay:hover {
+  background: rgba(0,255,65,0.4);
+}
+.msg-video-container.playing .play-overlay {
+  display: none;
+}
+
+/* Audio message player */
+.msg-audio-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border-radius: 20px;
+  min-width: 200px;
+}
+.msg-audio-container .audio-play-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  border-radius: 50%;
+  color: var(--green-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.msg-audio-container .audio-play-btn:hover {
+  background: #005500;
+}
+.msg-audio-container .audio-waveform {
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.msg-audio-container .audio-waveform .bar {
+  width: 3px;
+  background: var(--green-dim);
+  border-radius: 2px;
+  transition: height 0.1s;
+}
+.msg-audio-container .audio-duration {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 35px;
+}
+.msg-audio-container audio {
+  display: none;
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -1337,11 +1594,40 @@ body {
           <span id="typingText">User is typing...</span>
         </div>
 
+        <!-- Media Preview Area (shows selected images/videos before sending) -->
+        <div class="media-preview-area" id="mediaPreviewArea">
+          <div class="media-preview-grid" id="mediaPreviewGrid"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <small style="color: var(--text-dim); font-size: 9px;" id="mediaPreviewCount">0 files selected</small>
+            <button onclick="clearMediaPreviews()" style="background: none; border: none; color: var(--red-primary); font-size: 10px; cursor: pointer;">✕ Clear All</button>
+          </div>
+        </div>
+
         <div class="chat-input-area">
-          <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Send Image">📎</button>
-          <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+          <!-- Media Buttons -->
+          <div class="media-buttons">
+            <button class="media-btn" onclick="document.getElementById('multiImageInput').click()" title="Send Images">🖼️</button>
+            <button class="media-btn" onclick="document.getElementById('videoInput').click()" title="Send Video">🎬</button>
+            <button class="media-btn" id="voiceRecordBtn" onclick="toggleVoiceRecording()" title="Voice Message">🎤</button>
+          </div>
+          
+          <!-- Hidden file inputs -->
+          <input type="file" id="multiImageInput" accept="image/*" multiple style="display:none" onchange="handleMultiImageSelect(event)">
+          <input type="file" id="videoInput" accept="video/*" style="display:none" onchange="handleVideoSelect(event)">
+          
+          <!-- Voice Recording UI (hidden by default) -->
+          <div class="voice-recording-ui" id="voiceRecordingUI">
+            <div class="recording-dot"></div>
+            <span class="recording-time" id="recordingTime">00:00</span>
+            <span class="recording-text">Recording...</span>
+            <button class="cancel-recording" onclick="cancelVoiceRecording()">Cancel</button>
+          </div>
+          
+          <!-- Text Input (hidden when recording) -->
           <textarea id="messageInput" placeholder="Type message..." rows="1" onkeydown="handleMsgKeydown(event)" oninput="handleTyping()"></textarea>
-          <button class="send-btn" onclick="sendMessage()" title="Send">▶</button>
+          
+          <!-- Send Button -->
+          <button class="send-btn" onclick="sendMessage()" id="sendMessageBtn" title="Send">▶</button>
         </div>
       </div>
     </div>
@@ -2475,9 +2761,55 @@ async function loadMessages() {
       div.dataset.id = msg.id;
 
       let content = '';
-      if (msg.image) {
-        content += `<img class="msg-image" src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
+      
+      // Render multiple images
+      if (msg.images && msg.images.length > 0) {
+        const gridClass = msg.images.length === 1 ? 'single' : 
+                         msg.images.length === 3 ? 'multiple three-items' : 'multiple';
+        content += `<div class="msg-media-grid ${gridClass}">`;
+        for (const img of msg.images) {
+          content += `<img src="${img}" alt="shared image" onclick="previewImage(this.src)">`;
+        }
+        content += '</div>';
       }
+      
+      // Render single image (legacy support)
+      if (msg.image) {
+        content += `<div class="msg-media-grid single">`;
+        content += `<img src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
+        content += '</div>';
+      }
+      
+      // Render videos
+      if (msg.videos && msg.videos.length > 0) {
+        for (const vid of msg.videos) {
+          content += `
+            <div class="msg-video-container" onclick="toggleVideoPlay(this)">
+              <video src="${vid}" preload="metadata"></video>
+              <div class="play-overlay">▶</div>
+            </div>
+          `;
+        }
+      }
+      
+      // Render voice message
+      if (msg.audio) {
+        const duration = msg.audioDuration || 0;
+        const mins = Math.floor(duration / 60).toString().padStart(2, '0');
+        const secs = (duration % 60).toString().padStart(2, '0');
+        content += `
+          <div class="msg-audio-container" data-audio="${msg.audio}">
+            <button class="audio-play-btn" onclick="toggleAudioPlay(this.parentElement)">▶</button>
+            <div class="audio-waveform">
+              ${generateWaveformBars()}
+            </div>
+            <span class="audio-duration">${mins}:${secs}</span>
+            <audio src="${msg.audio}" preload="metadata"></audio>
+          </div>
+        `;
+      }
+      
+      // Render text
       if (msg.text) {
         content += `<div>${escapeHtml(msg.text)}</div>`;
       }
@@ -2518,6 +2850,72 @@ async function loadMessages() {
   } catch(e) {
     console.warn('Failed to load messages:', e);
   }
+}
+
+// Generate waveform bars for audio player
+function generateWaveformBars() {
+  let bars = '';
+  for (let i = 0; i < 20; i++) {
+    const height = Math.floor(Math.random() * 20) + 5;
+    bars += `<div class="bar" style="height: ${height}px;"></div>`;
+  }
+  return bars;
+}
+
+// Toggle video playback
+function toggleVideoPlay(container) {
+  const video = container.querySelector('video');
+  if (video.paused) {
+    video.play();
+    container.classList.add('playing');
+  } else {
+    video.pause();
+    container.classList.remove('playing');
+  }
+  
+  video.onended = () => {
+    container.classList.remove('playing');
+  };
+}
+
+// Toggle audio playback
+function toggleAudioPlay(container) {
+  const audio = container.querySelector('audio');
+  const btn = container.querySelector('.audio-play-btn');
+  const durationEl = container.querySelector('.audio-duration');
+  
+  if (audio.paused) {
+    // Pause any other playing audio
+    document.querySelectorAll('.msg-audio-container audio').forEach(a => {
+      if (a !== audio && !a.paused) {
+        a.pause();
+        a.currentTime = 0;
+        a.parentElement.querySelector('.audio-play-btn').textContent = '▶';
+      }
+    });
+    
+    audio.play();
+    btn.textContent = '⏸';
+    
+    // Update time display during playback
+    audio.ontimeupdate = () => {
+      const remaining = Math.ceil(audio.duration - audio.currentTime);
+      const mins = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const secs = (remaining % 60).toString().padStart(2, '0');
+      durationEl.textContent = `${mins}:${secs}`;
+    };
+  } else {
+    audio.pause();
+    btn.textContent = '▶';
+  }
+  
+  audio.onended = () => {
+    btn.textContent = '▶';
+    const totalDuration = Math.floor(audio.duration);
+    const mins = Math.floor(totalDuration / 60).toString().padStart(2, '0');
+    const secs = (totalDuration % 60).toString().padStart(2, '0');
+    durationEl.textContent = `${mins}:${secs}`;
+  };
 }
 
 function getReadStatusHtml(msg) {
@@ -2630,7 +3028,58 @@ async function sendMessage() {
   }
 }
 
-async function handleImageSelect(event) {
+// ---- Multimedia State ----
+let pendingMediaFiles = []; // Array of {type: 'image'|'video', data: base64, file: File}
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingStartTime = null;
+let recordingInterval = null;
+let isRecording = false;
+
+// ---- Multi-Image Selection ----
+async function handleMultiImageSelect(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  if (!currentChatId) { 
+    showToast('Open a chat first', true); 
+    return; 
+  }
+
+  const maxFiles = 10;
+  const maxSize = 15 * 1024 * 1024; // 15MB per file
+  
+  if (pendingMediaFiles.length + files.length > maxFiles) {
+    showToast(`Maximum ${maxFiles} files at once`, true);
+    event.target.value = '';
+    return;
+  }
+
+  showToast('Processing images...');
+
+  for (const file of files) {
+    if (file.size > maxSize) {
+      showToast(`${file.name} too large (max 15MB)`, true);
+      continue;
+    }
+    
+    try {
+      const compressed = await compressImage(file, 1200, 0.8);
+      pendingMediaFiles.push({
+        type: 'image',
+        data: compressed,
+        name: file.name
+      });
+    } catch(e) {
+      showToast(`Failed to process ${file.name}`, true);
+    }
+  }
+
+  updateMediaPreview();
+  event.target.value = '';
+}
+
+// ---- Video Selection ----
+async function handleVideoSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
   if (!currentChatId) { 
@@ -2638,34 +3087,306 @@ async function handleImageSelect(event) {
     return; 
   }
 
-  if (file.size > 500000) {
-    showToast('Image too large. Max 500KB.', true);
+  const maxSize = 50 * 1024 * 1024; // 50MB for videos
+  if (file.size > maxSize) {
+    showToast('Video too large. Max 50MB.', true);
     event.target.value = '';
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const msg = {
-      sender: currentUser.username,
-      image: e.target.result,
-      text: '',
-      timestamp: Date.now(),
-      delivered: true,
-      readBy: {}
-    };
-    try {
-      await fbPush(`messages/${currentChatId}`, msg);
-      await loadMessages();
-      scrollToBottom();
-      loadContacts();
-      showToast('Image sent');
-    } catch(err) {
-      showToast('Failed to send image', true);
-    }
-  };
-  reader.readAsDataURL(file);
+  showToast('Processing video...');
+
+  try {
+    const compressed = await compressVideo(file);
+    pendingMediaFiles.push({
+      type: 'video',
+      data: compressed,
+      name: file.name
+    });
+    updateMediaPreview();
+  } catch(e) {
+    showToast('Failed to process video: ' + e.message, true);
+  }
+  
   event.target.value = '';
+}
+
+// Compress video using canvas (basic compression - reduces quality)
+function compressVideo(file) {
+  return new Promise((resolve, reject) => {
+    // For videos, we'll just read and potentially limit size
+    // True video compression would require a library like ffmpeg.wasm
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read video'));
+    reader.onload = function(e) {
+      const result = e.target.result;
+      // Check if result is too large for Firebase (limit ~10MB for messages)
+      if (result.length > 10 * 1024 * 1024) {
+        reject(new Error('Video too large after processing. Try a shorter video.'));
+        return;
+      }
+      resolve(result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---- Media Preview ----
+function updateMediaPreview() {
+  const area = document.getElementById('mediaPreviewArea');
+  const grid = document.getElementById('mediaPreviewGrid');
+  const count = document.getElementById('mediaPreviewCount');
+  
+  if (pendingMediaFiles.length === 0) {
+    area.classList.remove('active');
+    return;
+  }
+  
+  area.classList.add('active');
+  count.textContent = `${pendingMediaFiles.length} file(s) selected`;
+  
+  grid.innerHTML = pendingMediaFiles.map((file, idx) => {
+    if (file.type === 'image') {
+      return `
+        <div class="media-preview-item">
+          <img src="${file.data}" alt="${file.name}">
+          <button class="remove-btn" onclick="removeMediaPreview(${idx})">×</button>
+        </div>
+      `;
+    } else if (file.type === 'video') {
+      return `
+        <div class="media-preview-item">
+          <video src="${file.data}" muted></video>
+          <span class="video-indicator">🎬 Video</span>
+          <button class="remove-btn" onclick="removeMediaPreview(${idx})">×</button>
+        </div>
+      `;
+    }
+    return '';
+  }).join('');
+}
+
+function removeMediaPreview(index) {
+  pendingMediaFiles.splice(index, 1);
+  updateMediaPreview();
+}
+
+function clearMediaPreviews() {
+  pendingMediaFiles = [];
+  updateMediaPreview();
+}
+
+// ---- Voice Recording ----
+async function toggleVoiceRecording() {
+  if (isRecording) {
+    stopVoiceRecording();
+  } else {
+    startVoiceRecording();
+  }
+}
+
+async function startVoiceRecording() {
+  if (!currentChatId) {
+    showToast('Open a chat first', true);
+    return;
+  }
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+    
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const audioData = reader.result;
+        
+        // Send voice message
+        const msg = {
+          sender: currentUser.username,
+          audio: audioData,
+          audioDuration: Math.floor((Date.now() - recordingStartTime) / 1000),
+          text: '',
+          timestamp: Date.now(),
+          delivered: true,
+          readBy: {}
+        };
+        
+        try {
+          await fbPush(`messages/${currentChatId}`, msg);
+          await loadMessages();
+          scrollToBottom();
+          loadContacts();
+          showToast('Voice message sent');
+        } catch(err) {
+          showToast('Failed to send voice message', true);
+        }
+      };
+      reader.readAsDataURL(audioBlob);
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    recordingStartTime = Date.now();
+    
+    // Update UI
+    document.getElementById('voiceRecordBtn').classList.add('recording');
+    document.getElementById('voiceRecordingUI').classList.add('active');
+    document.getElementById('messageInput').style.display = 'none';
+    
+    // Start timer
+    updateRecordingTime();
+    recordingInterval = setInterval(updateRecordingTime, 1000);
+    
+  } catch(e) {
+    showToast('Microphone access denied', true);
+  }
+}
+
+function stopVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  
+  isRecording = false;
+  clearInterval(recordingInterval);
+  
+  // Reset UI
+  document.getElementById('voiceRecordBtn').classList.remove('recording');
+  document.getElementById('voiceRecordingUI').classList.remove('active');
+  document.getElementById('messageInput').style.display = '';
+}
+
+function cancelVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.ondataavailable = null;
+    mediaRecorder.onstop = null;
+    mediaRecorder.stop();
+  }
+  
+  isRecording = false;
+  clearInterval(recordingInterval);
+  audioChunks = [];
+  
+  // Reset UI
+  document.getElementById('voiceRecordBtn').classList.remove('recording');
+  document.getElementById('voiceRecordingUI').classList.remove('active');
+  document.getElementById('messageInput').style.display = '';
+  
+  showToast('Recording cancelled');
+}
+
+function updateRecordingTime() {
+  const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+  const secs = (elapsed % 60).toString().padStart(2, '0');
+  document.getElementById('recordingTime').textContent = `${mins}:${secs}`;
+  
+  // Auto-stop at 5 minutes
+  if (elapsed >= 300) {
+    stopVoiceRecording();
+    showToast('Maximum recording time reached (5 min)');
+  }
+}
+
+// ---- Updated Send Message (with multimedia support) ----
+async function sendMessage() {
+  if (!currentChatId || !activeChatUser) return;
+  
+  // Check if we're recording - stop and send
+  if (isRecording) {
+    stopVoiceRecording();
+    return;
+  }
+
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  
+  // If we have pending media files, send them
+  if (pendingMediaFiles.length > 0) {
+    await sendMediaMessage(text);
+    return;
+  }
+  
+  // If no text and no media, do nothing
+  if (!text) return;
+
+  const msg = {
+    sender: currentUser.username,
+    text: text,
+    timestamp: Date.now(),
+    delivered: true,
+    readBy: {}
+  };
+
+  input.value = '';
+  input.style.height = 'auto';
+  clearTyping();
+
+  try {
+    await fbPush(`messages/${currentChatId}`, msg);
+    await loadMessages();
+    scrollToBottom();
+    loadContacts();
+  } catch(e) {
+    showToast('Failed to send message', true);
+  }
+}
+
+async function sendMediaMessage(text) {
+  const input = document.getElementById('messageInput');
+  
+  // Prepare media arrays
+  const images = pendingMediaFiles.filter(f => f.type === 'image').map(f => f.data);
+  const videos = pendingMediaFiles.filter(f => f.type === 'video').map(f => f.data);
+  
+  const msg = {
+    sender: currentUser.username,
+    text: text || '',
+    timestamp: Date.now(),
+    delivered: true,
+    readBy: {}
+  };
+  
+  // Add media to message
+  if (images.length > 0) {
+    msg.images = images; // Array of base64 images
+  }
+  if (videos.length > 0) {
+    msg.videos = videos; // Array of base64 videos
+  }
+  
+  input.value = '';
+  input.style.height = 'auto';
+  clearMediaPreviews();
+  clearTyping();
+
+  try {
+    await fbPush(`messages/${currentChatId}`, msg);
+    await loadMessages();
+    scrollToBottom();
+    loadContacts();
+    showToast('Media sent');
+  } catch(e) {
+    showToast('Failed to send media: ' + e.message, true);
+  }
+}
+
+// Legacy single image handler (keep for backwards compatibility)
+async function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  handleMultiImageSelect(event);
 }
 
 function handleMsgKeydown(event) {
