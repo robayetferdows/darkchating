@@ -1047,37 +1047,8 @@ body {
   <img id="imgPreviewSrc" src="" alt="Preview">
 </div>
 
-<!-- SETUP SCREEN (Firebase Required) -->
-<div class="setup-container" id="setupScreen">
-  <div class="setup-box">
-    <h2>⚡ INITIAL SETUP</h2>
-    <p class="subtitle">DARK CHAT requires Firebase Realtime Database for global cross-device communication.</p>
-    
-    <div class="setup-steps">
-      <ol>
-        <li>Go to <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
-        <li>Create a new project (or select existing)</li>
-        <li>Navigate to <strong>Build → Realtime Database</strong></li>
-        <li>Click <strong>"Create Database"</strong> → Start in <strong>Test Mode</strong></li>
-        <li>Copy your database URL (looks like: <code>https://your-project-id.firebaseio.com</code>)</li>
-        <li>Paste it below and connect!</li>
-      </ol>
-    </div>
-    
-    <div class="form-group">
-      <label>> Firebase Database URL</label>
-      <input type="text" id="setupFirebaseUrl" placeholder="https://your-project-id.firebaseio.com">
-    </div>
-    
-    <button class="auth-btn" onclick="setupFirebase()" id="setupBtn">🔗 CONNECT & VERIFY</button>
-    <div class="auth-error" id="setupError"></div>
-    <div class="auth-success" id="setupSuccess"></div>
-    
-    <div style="margin-top: 20px; padding: 12px; background: rgba(255,204,0,0.05); border: 1px solid rgba(255,204,0,0.2); border-radius: 4px; font-size: 10px; color: var(--yellow-primary); text-align: center;">
-      ⚠ Test Mode allows public read/write for 30 days. For production, configure proper security rules.
-    </div>
-  </div>
-</div>
+<!-- SETUP SCREEN - Hidden (Firebase URL is hardcoded) -->
+<div class="setup-container" id="setupScreen" style="display:none;"></div>
 
 <!-- AUTH SCREEN -->
 <div class="auth-container" id="authScreen">
@@ -1127,7 +1098,7 @@ body {
     </div>
     
     <div style="margin-top: 16px; text-align: center;">
-      <a onclick="openConfigModal()" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; letter-spacing: 1px;">⚙ CHANGE DATABASE CONFIG</a>
+      <span style="color: var(--text-dim); font-size: 10px; letter-spacing: 1px;">🔗 CONNECTED TO GLOBAL NETWORK</span>
     </div>
   </div>
 </div>
@@ -1260,21 +1231,7 @@ body {
   </div>
 </div>
 
-<!-- FIREBASE CONFIG MODAL -->
-<div class="modal-overlay" id="configModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('configModal')">✕</button>
-    <h3>⚙ DATABASE CONFIG</h3>
-    <p style="font-size:10px; color:var(--text-secondary); margin-bottom:16px; line-height:1.8;">
-      Change your Firebase Realtime Database URL. This will require re-login.
-    </p>
-    <div class="form-group">
-      <label>> Database URL</label>
-      <input type="text" id="firebaseUrl" placeholder="https://your-project.firebaseio.com">
-    </div>
-    <button class="auth-btn" onclick="saveFirebaseConfig()">🔗 UPDATE & RECONNECT</button>
-  </div>
-</div>
+<!-- Firebase URL is hardcoded - no config modal needed -->
 
 <script>
 // ============================================================
@@ -1283,7 +1240,8 @@ body {
 // ============================================================
 
 // ---- Firebase Config ----
-let FIREBASE_URL = localStorage.getItem('dc_firebase_url') || '';
+// HARDCODED DATABASE URL - No setup required
+const FIREBASE_URL = 'https://darkchat-5991c-default-rtdb.firebaseio.com';
 
 // ---- State ----
 let currentUser = null;
@@ -1453,74 +1411,8 @@ async function fbUpdate(path, data) {
   }
 }
 
-// ---- Setup & Configuration ----
-async function setupFirebase() {
-  const url = document.getElementById('setupFirebaseUrl').value.trim().replace(/\/+$/, '');
-  const errEl = document.getElementById('setupError');
-  const sucEl = document.getElementById('setupSuccess');
-  const btn = document.getElementById('setupBtn');
-  
-  errEl.textContent = '';
-  sucEl.textContent = '';
-  
-  if (!url) {
-    errEl.textContent = '⚠ Please enter a Firebase Database URL';
-    return;
-  }
-  
-  if (!url.startsWith('https://') || !url.includes('firebaseio.com')) {
-    errEl.textContent = '⚠ Invalid URL. Must be https://your-project.firebaseio.com';
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.textContent = '⏳ VERIFYING...';
-  
-  try {
-    // Test connection by trying to read
-    const testUrl = `${url}/.json`;
-    const response = await fetch(testUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Connection failed: ${response.status}`);
-    }
-    
-    // Success! Save and proceed
-    FIREBASE_URL = url;
-    localStorage.setItem('dc_firebase_url', url);
-    
-    sucEl.textContent = '✓ Connected successfully! Loading...';
-    
-    setTimeout(() => {
-      document.getElementById('setupScreen').style.display = 'none';
-      document.getElementById('authScreen').classList.add('active');
-    }, 1000);
-    
-  } catch(e) {
-    errEl.textContent = `⚠ Connection failed: ${e.message}. Check URL and database rules.`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🔗 CONNECT & VERIFY';
-  }
-}
-
-function openConfigModal() {
-  document.getElementById('configModal').classList.add('active');
-  document.getElementById('firebaseUrl').value = FIREBASE_URL;
-}
-
-function saveFirebaseConfig() {
-  const url = document.getElementById('firebaseUrl').value.trim().replace(/\/+$/, '');
-  if (url && (!url.startsWith('https://') || !url.includes('firebaseio.com'))) {
-    showToast('Invalid Firebase URL', true);
-    return;
-  }
-  FIREBASE_URL = url;
-  localStorage.setItem('dc_firebase_url', url);
-  closeModal('configModal');
-  handleLogout();
-  showToast('Database config updated. Please login again.');
-}
+// ---- Configuration ----
+// Firebase URL is hardcoded - no setup functions needed
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
@@ -2352,13 +2244,7 @@ function initMatrix() {
 window.addEventListener('DOMContentLoaded', async () => {
   initMatrix();
   
-  // Check if Firebase is configured
-  if (!FIREBASE_URL) {
-    document.getElementById('setupScreen').style.display = 'flex';
-    return;
-  }
-  
-  // Hide setup screen
+  // Firebase URL is hardcoded - skip setup screen entirely
   document.getElementById('setupScreen').style.display = 'none';
   
   // Try auto-login
@@ -2381,9 +2267,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('addFriendInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendFriendRequest();
-  });
-  document.getElementById('setupFirebaseUrl').addEventListener('keydown', e => {
-    if (e.key === 'Enter') setupFirebase();
   });
 
   // Close modals on outside click
