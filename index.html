@@ -2176,6 +2176,48 @@ body {
 .message.sent .reply-btn { left: -36px; }
 .message.received .reply-btn { right: -36px; }
 
+/* Swipe-to-reply */
+.message {
+  transition: none;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.message.swiping {
+  transition: none !important;
+  animation: none !important;
+}
+.message .swipe-reply-icon {
+  position: absolute;
+  top: 50%;
+  left: -40px;
+  transform: translateY(-50%) scale(0.5);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  color: var(--green-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+  z-index: 5;
+}
+.message .swipe-reply-icon.visible {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.message .swipe-reply-icon.triggered {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.2);
+  background: var(--green-primary);
+  color: var(--bg-primary);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
 /* Double-tap heart reaction */
 .msg-reaction {
   position: absolute;
@@ -4176,6 +4218,9 @@ async function loadMessages() {
       });
 
       container.appendChild(div);
+      
+      // Attach swipe-to-reply gesture
+      attachSwipeToReply(div, msg.id);
     }
 
     if (hasNewMessages) {
@@ -4660,6 +4705,185 @@ function setReplyTo(msgId, sender, senderName, previewText) {
 function cancelReply() {
   replyToMsg = null;
   document.getElementById('replyPreviewBar').classList.remove('active');
+}
+
+// ---- Swipe-to-Reply Gesture Handler ----
+const SWIPE_THRESHOLD = 60;   // pixels to trigger reply
+const SWIPE_MAX = 100;        // max drag distance
+const SWIPE_ANGLE_LIMIT = 30; // degrees from horizontal allowed
+
+function attachSwipeToReply(msgEl, msgId) {
+  let startX = 0, startY = 0, currentX = 0;
+  let isSwiping = false;
+  let directionLocked = false;
+  let isHorizontal = false;
+  
+  // Create the reply arrow indicator
+  const icon = document.createElement('div');
+  icon.className = 'swipe-reply-icon';
+  icon.textContent = '↩';
+  msgEl.appendChild(icon);
+  
+  function onTouchStart(e) {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    currentX = 0;
+    isSwiping = false;
+    directionLocked = false;
+    isHorizontal = false;
+    msgEl.classList.remove('swiping');
+  }
+  
+  function onTouchMove(e) {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    
+    // Lock direction after 10px of movement
+    if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      directionLocked = true;
+      const angle = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
+      // Only treat as horizontal swipe if angle is within limit
+      isHorizontal = angle < SWIPE_ANGLE_LIMIT || angle > (180 - SWIPE_ANGLE_LIMIT);
+    }
+    
+    if (!directionLocked || !isHorizontal) return;
+    
+    // Only allow left-to-right swipe (positive dx)
+    if (dx <= 0) return;
+    
+    e.preventDefault(); // Prevent scroll while swiping horizontally
+    isSwiping = true;
+    msgEl.classList.add('swiping');
+    
+    // Clamp the movement
+    currentX = Math.min(dx, SWIPE_MAX);
+    
+    // Apply transform with rubber-band feel
+    const resistance = currentX > SWIPE_THRESHOLD ? 0.4 : 1;
+    const adjustedX = currentX > SWIPE_THRESHOLD 
+      ? SWIPE_THRESHOLD + (currentX - SWIPE_THRESHOLD) * resistance 
+      : currentX;
+    
+    msgEl.style.transform = `translateX(${adjustedX}px)`;
+    
+    // Show/hide reply icon based on threshold
+    if (currentX >= SWIPE_THRESHOLD) {
+      icon.classList.add('visible', 'triggered');
+    } else if (currentX > 15) {
+      icon.classList.add('visible');
+      icon.classList.remove('triggered');
+    } else {
+      icon.classList.remove('visible', 'triggered');
+    }
+  }
+  
+  function onTouchEnd(e) {
+    if (!isSwiping) return;
+    
+    const wasTriggered = currentX >= SWIPE_THRESHOLD;
+    
+    // Animate back to original position
+    msgEl.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+    msgEl.style.transform = 'translateX(0)';
+    
+    icon.classList.remove('visible', 'triggered');
+    
+    // Clean up transition after animation
+    setTimeout(() => {
+      msgEl.style.transition = '';
+      msgEl.style.transform = '';
+      msgEl.classList.remove('swiping');
+    }, 260);
+    
+    // Trigger reply if threshold was met
+    if (wasTriggered) {
+      // Small haptic-like visual feedback
+      msgEl.style.transition = 'transform 0.1s ease';
+      msgEl.style.transform = 'translateX(8px)';
+      setTimeout(() => {
+        msgEl.style.transition = 'transform 0.2s ease';
+        msgEl.style.transform = 'translateX(0)';
+        setTimeout(() => { msgEl.style.transition = ''; msgEl.style.transform = ''; }, 210);
+      }, 100);
+      
+      handleReplyClick({ dataset: { replyId: msgId } });
+    }
+    
+    isSwiping = false;
+    directionLocked = false;
+    isHorizontal = false;
+    currentX = 0;
+  }
+  
+  // Mouse drag support for desktop
+  let mouseDown = false;
+  
+  function onMouseDown(e) {
+    // Don't interfere with button clicks or links
+    if (e.target.closest('button, a, .reply-btn, .msg-reaction, .media-download-btn, img, video, audio')) return;
+    mouseDown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    currentX = 0;
+    isSwiping = false;
+    directionLocked = false;
+    isHorizontal = false;
+  }
+  
+  function onMouseMove(e) {
+    if (!mouseDown) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      directionLocked = true;
+      const angle = Math.abs(Math.atan2(dy, dx) * (180 / Math.PI));
+      isHorizontal = angle < SWIPE_ANGLE_LIMIT || angle > (180 - SWIPE_ANGLE_LIMIT);
+    }
+    
+    if (!directionLocked || !isHorizontal || dx <= 0) return;
+    
+    e.preventDefault();
+    isSwiping = true;
+    msgEl.classList.add('swiping');
+    
+    currentX = Math.min(dx, SWIPE_MAX);
+    const resistance = currentX > SWIPE_THRESHOLD ? 0.4 : 1;
+    const adjustedX = currentX > SWIPE_THRESHOLD 
+      ? SWIPE_THRESHOLD + (currentX - SWIPE_THRESHOLD) * resistance 
+      : currentX;
+    
+    msgEl.style.transform = `translateX(${adjustedX}px)`;
+    
+    if (currentX >= SWIPE_THRESHOLD) {
+      icon.classList.add('visible', 'triggered');
+    } else if (currentX > 15) {
+      icon.classList.add('visible');
+      icon.classList.remove('triggered');
+    } else {
+      icon.classList.remove('visible', 'triggered');
+    }
+  }
+  
+  function onMouseUp(e) {
+    if (!mouseDown) return;
+    mouseDown = false;
+    onTouchEnd(e);
+  }
+  
+  // Attach touch events
+  msgEl.addEventListener('touchstart', onTouchStart, { passive: true });
+  msgEl.addEventListener('touchmove', onTouchMove, { passive: false });
+  msgEl.addEventListener('touchend', onTouchEnd, { passive: true });
+  
+  // Attach mouse events for desktop
+  msgEl.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 }
 
 // Scroll to a specific message when clicking a quoted reply
