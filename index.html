@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DARK CHAT — Encrypted Communications</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0d0d14;
+  --bg-tertiary: #12121c;
+  --bg-card: #141420;
+  --bg-input: #0e0e18;
+  --green-primary: #00ff41;
+  --green-dim: #00cc33;
+  --green-dark: #004d14;
+  --green-glow: rgba(0,255,65,0.15);
+  --red-primary: #ff0040;
+  --cyan-primary: #00e5ff;
+  --text-primary: #c8ffc8;
+  --text-secondary: #6a8a6a;
+  --text-dim: #3a5a3a;
+  --border-color: #1a3a1a;
+  --border-active: #00ff41;
+  --scrollbar-bg: #0a0a0f;
+  --scrollbar-thumb: #1a3a1a;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Matrix Rain Canvas */
+#matrixCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--green-dark); }
+
+/* Animations */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+@keyframes scanline {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes blink-caret {
+  50% { border-color: transparent; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 5px var(--green-glow); }
+  50% { box-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,65,0.05); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Scanline overlay */
+.scanline-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.03) 0px,
+    rgba(0,0,0,0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 10%;
+  background: linear-gradient(transparent, rgba(0,255,65,0.02), transparent);
+  animation: scanline 8s linear infinite;
+}
+
+/* Auth Screen */
+.auth-container {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  background: var(--bg-primary);
+}
+.auth-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 40px;
+  width: 420px;
+  max-width: 95vw;
+  position: relative;
+  animation: pulse-green 3s infinite;
+}
+.auth-box::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--green-primary), transparent, var(--green-primary));
+  z-index: -1;
+  opacity: 0.3;
+}
+.auth-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.auth-logo h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--green-primary);
+  text-shadow: 0 0 10px var(--green-glow), 0 0 30px rgba(0,255,65,0.1);
+  letter-spacing: 6px;
+  animation: flicker 4s infinite;
+}
+.auth-logo .skull {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 8px rgba(0,255,65,0.4));
+}
+.auth-logo p {
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 3px;
+  margin-top: 4px;
+}
+.auth-tabs {
+  display: flex;
+  margin-bottom: 25px;
+  border-bottom: 1px solid var(--border-color);
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: 2px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+  font-family: inherit;
+}
+.auth-tab.active {
+  color: var(--green-primary);
+  border-bottom-color: var(--green-primary);
+}
+.auth-tab:hover { color: var(--green-dim); }
+
+.form-group {
+  margin-bottom: 18px;
+  position: relative;
+}
+.form-group label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  transition: all 0.3s;
+  outline: none;
+}
+.form-group input:focus {
+  border-color: var(--green-primary);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+.form-group input::placeholder {
+  color: var(--text-dim);
+}
+.auth-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--green-dark), #003300);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+.auth-btn:hover {
+  background: linear-gradient(135deg, #005500, var(--green-dark));
+  box-shadow: 0 0 20px var(--green-glow);
+}
+.auth-error {
+  color: var(--red-primary);
+  font-size: 11px;
+  margin-top: 10px;
+  text-align: center;
+  min-height: 16px;
+}
+.auth-success {
+  color: var(--green-primary);
+  font-size: 11px;
+  margin-top: 10px;
+  text-align: center;
+  min-height: 16px;
+}
+
+/* Firebase Config Modal */
+.config-notice {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(0,255,65,0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+.config-notice a {
+  color: var(--green-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Main App Layout */
+.app-container {
+  display: none;
+  height: 100vh;
+  position: relative;
+  z-index: 10;
+}
+.app-container.active { display: flex; }
+
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+}
+.sidebar-header h2 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green-primary);
+  letter-spacing: 4px;
+  text-shadow: 0 0 8px var(--green-glow);
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+.icon-btn {
+  width: 34px; height: 34px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+.icon-btn:hover {
+  border-color: var(--green-primary);
+  color: var(--green-primary);
+  box-shadow: 0 0 8px var(--green-glow);
+}
+
+/* User Profile Bar */
+.user-profile-bar {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,255,65,0.02);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.user-profile-bar:hover { background: rgba(0,255,65,0.05); }
+.avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--bg-input);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar.online::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  background: var(--green-primary);
+  border-radius: 50%;
+  border: 2px solid var(--bg-secondary);
+}
+.user-info {
+  flex: 1;
+  overflow: hidden;
+}
+.user-info .username {
+  font-size: 13px;
+  color: var(--green-primary);
+  font-weight: 600;
+}
+.user-info .status {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+/* Tabs (Friends / Requests) */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+.sidebar-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  transition: all 0.3s;
+  border-bottom: 2px solid transparent;
+  position: relative;
+}
+.sidebar-tab.active {
+  color: var(--green-primary);
+  border-bottom-color: var(--green-primary);
+}
+.sidebar-tab .badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 30px);
+  background: var(--red-primary);
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Search / Add Friend */
+.sidebar-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+.search-input-wrap {
+  display: flex;
+  gap: 8px;
+}
+.search-input-wrap input {
+  flex: 1;
+  padding: 9px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: border 0.3s;
+}
+.search-input-wrap input:focus { border-color: var(--green-dim); }
+.search-input-wrap input::placeholder { color: var(--text-dim); }
+.search-input-wrap button {
+  padding: 9px 14px;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.search-input-wrap button:hover {
+  background: #005500;
+  box-shadow: 0 0 8px var(--green-glow);
+}
+
+/* Contact List */
+.contact-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+  animation: slideIn 0.3s ease;
+}
+.contact-item:hover {
+  background: rgba(0,255,65,0.03);
+}
+.contact-item.active {
+  background: rgba(0,255,65,0.06);
+  border-left-color: var(--green-primary);
+}
+.contact-item .contact-info {
+  flex: 1;
+  overflow: hidden;
+}
+.contact-item .contact-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.contact-item .contact-last-msg {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+.contact-item .contact-time {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.contact-item .unread-badge {
+  background: var(--green-primary);
+  color: var(--bg-primary);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+/* Friend Request Item */
+.request-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  animation: slideIn 0.3s ease;
+}
+.request-item .req-info { flex: 1; }
+.request-item .req-name {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.request-item .req-type {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+.req-actions {
+  display: flex;
+  gap: 6px;
+}
+.req-btn {
+  padding: 5px 10px;
+  font-size: 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid;
+  transition: all 0.3s;
+}
+.req-btn.accept {
+  background: var(--green-dark);
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+.req-btn.accept:hover { box-shadow: 0 0 8px var(--green-glow); }
+.req-btn.decline {
+  background: rgba(255,0,64,0.1);
+  border-color: rgba(255,0,64,0.3);
+  color: var(--red-primary);
+}
+.req-btn.decline:hover { box-shadow: 0 0 8px rgba(255,0,64,0.2); }
+
+/* Chat Area */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  position: relative;
+}
+.chat-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text-dim);
+}
+.chat-empty .big-icon { font-size: 64px; opacity: 0.3; }
+.chat-empty p { font-size: 13px; letter-spacing: 2px; }
+
+/* Chat Header */
+.chat-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+}
+.chat-header .chat-user-name {
+  font-size: 14px;
+  color: var(--green-primary);
+  font-weight: 600;
+}
+.chat-header .chat-user-status {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Messages */
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.message {
+  max-width: 70%;
+  animation: fadeIn 0.3s ease;
+}
+.message.sent { align-self: flex-end; }
+.message.received { align-self: flex-start; }
+.message .msg-bubble {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  position: relative;
+  word-break: break-word;
+}
+.message.sent .msg-bubble {
+  background: linear-gradient(135deg, #0a2a0a, #0d3d0d);
+  border: 1px solid var(--green-dark);
+  border-bottom-right-radius: 2px;
+  color: var(--text-primary);
+}
+.message.received .msg-bubble {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-bottom-left-radius: 2px;
+  color: var(--text-primary);
+}
+.message .msg-time {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-align: right;
+}
+.message.received .msg-time { text-align: left; }
+.message .msg-image {
+  max-width: 250px;
+  max-height: 300px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+}
+.message .msg-sender {
+  font-size: 10px;
+  color: var(--green-dim);
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+/* Chat Input */
+.chat-input-area {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.chat-input-area textarea {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--green-primary);
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  min-height: 42px;
+  transition: border 0.3s;
+  line-height: 1.4;
+}
+.chat-input-area textarea:focus {
+  border-color: var(--green-dim);
+}
+.chat-input-area textarea::placeholder { color: var(--text-dim); }
+.chat-input-area .send-btn {
+  width: 42px; height: 42px;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  border-radius: 6px;
+  color: var(--green-primary);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.chat-input-area .send-btn:hover {
+  background: #005500;
+  box-shadow: 0 0 12px var(--green-glow);
+}
+.chat-input-area .attach-btn {
+  width: 42px; height: 42px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.chat-input-area .attach-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 30px;
+  width: 400px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+.modal-box h3 {
+  color: var(--green-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+.modal-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--red-primary); }
+
+/* Profile Modal */
+.profile-avatar-wrap {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.profile-avatar-wrap .avatar {
+  width: 80px; height: 80px;
+  margin: 0 auto 12px;
+  font-size: 36px;
+  border-width: 3px;
+  cursor: pointer;
+}
+.profile-avatar-wrap .avatar:hover {
+  border-color: var(--green-primary);
+}
+.profile-avatar-wrap small {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+/* Image preview modal */
+.img-preview-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.img-preview-overlay.active { display: flex; }
+.img-preview-overlay img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--green-dark);
+  border-radius: 6px;
+  color: var(--green-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.toast.error {
+  border-color: rgba(255,0,64,0.3);
+  color: var(--red-primary);
+}
+
+/* Firebase config section */
+.firebase-config-section {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255,0,64,0.03);
+}
+.firebase-config-section p {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+/* Empty states */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 2;
+}
+
+/* Loading indicator */
+.sync-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-dark);
+  transition: background 0.3s;
+}
+.sync-indicator.syncing {
+  background: var(--green-primary);
+  box-shadow: 0 0 8px var(--green-glow);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 100%; min-width: 100%; position: absolute; z-index: 50; }
+  .sidebar.hidden { display: none; }
+  .chat-area { width: 100%; }
+  .back-btn { display: flex !important; }
+}
+.back-btn {
+  display: none;
+  width: 34px; height: 34px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  font-size: 11px;
+  color: var(--green-dim);
+  padding: 4px 0;
+  font-style: italic;
+  display: none;
+}
+.typing-indicator.active { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+<div class="scanline-overlay"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- IMAGE PREVIEW -->
+<div class="img-preview-overlay" id="imgPreview" onclick="this.classList.remove('active')">
+  <img id="imgPreviewSrc" src="" alt="Preview">
+</div>
+
+<!-- AUTH SCREEN -->
+<div class="auth-container" id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="skull">💀</span>
+      <h1>DARK CHAT</h1>
+      <p>// ENCRYPTED COMMUNICATIONS //</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">[ LOGIN ]</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">[ REGISTER ]</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+      <div class="form-group">
+        <label>> Username</label>
+        <input type="text" id="loginUser" placeholder="enter_username" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>> Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" onclick="handleLogin()">⚡ INITIATE ACCESS ⚡</button>
+      <div class="auth-error" id="loginError"></div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>> Choose Username</label>
+        <input type="text" id="regUser" placeholder="unique_handle" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>> Password</label>
+        <input type="password" id="regPass" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label>> Confirm Password</label>
+        <input type="password" id="regPassConfirm" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" onclick="handleRegister()">🔐 CREATE IDENTITY 🔐</button>
+      <div class="auth-error" id="regError"></div>
+      <div class="auth-success" id="regSuccess"></div>
+    </div>
+
+    <div class="config-notice">
+      🌐 GLOBAL MODE: Uses Firebase Realtime DB for cross-network comms.<br>
+      <a onclick="openConfigModal()">⚙ Configure Firebase</a> | Default demo DB included.
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app-container" id="appContainer">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>💀 DARK CHAT</h2>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openProfileModal()" title="Profile">👤</button>
+        <button class="icon-btn" onclick="handleLogout()" title="Logout">⏻</button>
+      </div>
+    </div>
+
+    <div class="user-profile-bar" onclick="openProfileModal()">
+      <div class="avatar online" id="myAvatar">💀</div>
+      <div class="user-info">
+        <div class="username" id="myUsername">-</div>
+        <div class="status">● SECURE CONNECTION ACTIVE</div>
+      </div>
+    </div>
+
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" id="tabFriends" onclick="switchSidebarTab('friends')">CONTACTS</button>
+      <button class="sidebar-tab" id="tabRequests" onclick="switchSidebarTab('requests')">
+        REQUESTS
+        <span class="badge" id="reqBadge" style="display:none">0</span>
+      </button>
+    </div>
+
+    <div class="sidebar-search" id="searchArea">
+      <div class="search-input-wrap">
+        <input type="text" id="addFriendInput" placeholder="username to add...">
+        <button onclick="sendFriendRequest()">+ ADD</button>
+      </div>
+    </div>
+
+    <div class="contact-list" id="contactList">
+      <div class="empty-state">No contacts yet.<br>Add a friend to start chatting.</div>
+    </div>
+
+    <div class="contact-list" id="requestList" style="display:none;">
+      <div class="empty-state">No pending requests.</div>
+    </div>
+  </div>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area" id="chatArea">
+    <div class="sync-indicator" id="syncIndicator"></div>
+
+    <div class="chat-empty" id="chatEmpty">
+      <div class="big-icon">🔒</div>
+      <p>SELECT A CONTACT TO BEGIN</p>
+      <p style="font-size:10px; color:var(--text-dim)">All messages are synced globally via encrypted channels</p>
+    </div>
+
+    <div id="chatView" style="display:none;">
+      <div class="chat-header">
+        <button class="back-btn" onclick="goBackToSidebar()">←</button>
+        <div class="avatar" id="chatAvatar">💀</div>
+        <div>
+          <div class="chat-user-name" id="chatUserName">-</div>
+          <div class="chat-user-status" id="chatUserStatus">-</div>
+        </div>
+      </div>
+
+      <div class="messages-container" id="messagesContainer"></div>
+
+      <div class="typing-indicator" id="typingIndicator">
+        <span id="typingText">user is typing...</span>
+      </div>
+
+      <div class="chat-input-area">
+        <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Send Image">📎</button>
+        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+        <textarea id="messageInput" placeholder="Type message..." rows="1" onkeydown="handleMsgKeydown(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" onclick="sendMessage()" title="Send">▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
+    <h3>👤 OPERATOR PROFILE</h3>
+    <div class="profile-avatar-wrap">
+      <div class="avatar" id="profileAvatar" onclick="document.getElementById('avatarInput').click()" title="Click to change photo">💀</div>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
+      <small>[ CLICK AVATAR TO CHANGE ]</small>
+    </div>
+    <div class="form-group">
+      <label>> Username</label>
+      <input type="text" id="profileUsername" disabled style="opacity:0.6">
+    </div>
+    <div class="form-group">
+      <label>> Status</label>
+      <input type="text" id="profileStatus" placeholder="Set your status..." maxlength="50">
+    </div>
+    <button class="auth-btn" onclick="saveProfile()" style="margin-top:4px">💾 SAVE CHANGES</button>
+  </div>
+</div>
+
+<!-- FIREBASE CONFIG MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('configModal')">✕</button>
+    <h3>⚙ FIREBASE CONFIG</h3>
+    <p style="font-size:10px; color:var(--text-secondary); margin-bottom:16px; line-height:1.8;">
+      To enable global cross-network chat, enter your Firebase Realtime Database URL.<br>
+      1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green-primary)">Firebase Console</a><br>
+      2. Create a project → Realtime Database<br>
+      3. Set rules to allow read/write (for testing)<br>
+      4. Copy the database URL below
+    </p>
+    <div class="form-group">
+      <label>> Database URL</label>
+      <input type="text" id="firebaseUrl" placeholder="https://your-project.firebaseio.com">
+    </div>
+    <button class="auth-btn" onclick="saveFirebaseConfig()">🔗 CONNECT DATABASE</button>
+    <div style="margin-top:12px; font-size:10px; color:var(--text-dim); text-align:center;">
+      Leave empty to use local-only mode (same browser tabs can chat).
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DARK CHAT — Complete Chat Application
+// Firebase Realtime DB for global + localStorage fallback
+// ============================================================
+
+// ---- Firebase Config ----
+let FIREBASE_URL = localStorage.getItem('dc_firebase_url') || '';
+
+// ---- State ----
+let currentUser = null;  // { username, password, avatar, status }
+let activeChatUser = null;
+let syncInterval = null;
+let lastMessageCounts = {};
+
+// ---- Utility Functions ----
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+function hashPassword(pwd) {
+  let hash = 0;
+  for (let i = 0; i < pwd.length; i++) {
+    const chr = pwd.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+  return 'h_' + Math.abs(hash).toString(16);
+}
+
+function escapeHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  return d.toLocaleDateString([], {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function showToast(msg, isError = false) {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ---- Firebase REST API helpers ----
+async function fbGet(path) {
+  if (!FIREBASE_URL) return localGet(path);
+  try {
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`);
+    if (!r.ok) throw new Error('FB read fail');
+    return await r.json();
+  } catch(e) {
+    console.warn('Firebase GET failed, using local:', e);
+    return localGet(path);
+  }
+}
+
+async function fbSet(path, data) {
+  if (!FIREBASE_URL) return localSet(path, data);
+  try {
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error('FB write fail');
+    // Mirror to local
+    localSet(path, data);
+    return true;
+  } catch(e) {
+    console.warn('Firebase SET failed, using local:', e);
+    return localSet(path, data);
+  }
+}
+
+async function fbPush(path, data) {
+  if (!FIREBASE_URL) return localPush(path, data);
+  try {
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error('FB push fail');
+    const result = await r.json();
+    // Mirror to local
+    localPush(path, data);
+    return result.name;
+  } catch(e) {
+    console.warn('Firebase PUSH failed, using local:', e);
+    return localPush(path, data);
+  }
+}
+
+async function fbDelete(path) {
+  if (!FIREBASE_URL) return localDelete(path);
+  try {
+    await fetch(`${FIREBASE_URL}/${path}.json`, { method: 'DELETE' });
+    localDelete(path);
+  } catch(e) {
+    localDelete(path);
+  }
+}
+
+// ---- LocalStorage DB (fallback / same-browser mode) ----
+function localGet(path) {
+  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
+  const parts = path.split('/').filter(Boolean);
+  let node = db;
+  for (const p of parts) {
+    if (node == null || typeof node !== 'object') return null;
+    node = node[p];
+  }
+  return node !== undefined ? node : null;
+}
+
+function localSet(path, data) {
+  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
+  const parts = path.split('/').filter(Boolean);
+  let node = db;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!node[parts[i]] || typeof node[parts[i]] !== 'object') node[parts[i]] = {};
+    node = node[parts[i]];
+  }
+  node[parts[parts.length - 1]] = data;
+  localStorage.setItem('dc_db', JSON.stringify(db));
+  return true;
+}
+
+function localPush(path, data) {
+  const id = generateId();
+  localSet(path + '/' + id, data);
+  return id;
+}
+
+function localDelete(path) {
+  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
+  const parts = path.split('/').filter(Boolean);
+  let node = db;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!node[parts[i]]) return;
+    node = node[parts[i]];
+  }
+  delete node[parts[parts.length - 1]];
+  localStorage.setItem('dc_db', JSON.stringify(db));
+}
+
+// ---- Auth Functions ----
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+  });
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('regError').textContent = '';
+  document.getElementById('regSuccess').textContent = '';
+}
+
+async function handleRegister() {
+  const user = document.getElementById('regUser').value.trim().toLowerCase();
+  const pass = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPassConfirm').value;
+  const errEl = document.getElementById('regError');
+  const sucEl = document.getElementById('regSuccess');
+  errEl.textContent = '';
+  sucEl.textContent = '';
+
+  if (!user || user.length < 3) { errEl.textContent = '⚠ Username must be 3+ characters'; return; }
+  if (!/^[a-z0-9_]+$/.test(user)) { errEl.textContent = '⚠ Username: lowercase letters, numbers, underscore only'; return; }
+  if (pass.length < 4) { errEl.textContent = '⚠ Password must be 4+ characters'; return; }
+  if (pass !== pass2) { errEl.textContent = '⚠ Passwords do not match'; return; }
+
+  // Check if username exists
+  const existing = await fbGet(`users/${user}`);
+  if (existing) { errEl.textContent = '⚠ Username already taken'; return; }
+
+  // Create user
+  await fbSet(`users/${user}`, {
+    username: user,
+    password: hashPassword(pass),
+    avatar: '',
+    status: 'Online',
+    created: Date.now(),
+    lastSeen: Date.now()
+  });
+
+  sucEl.textContent = '✓ Identity created. You may now login.';
+  document.getElementById('regUser').value = '';
+  document.getElementById('regPass').value = '';
+  document.getElementById('regPassConfirm').value = '';
+}
+
+async function handleLogin() {
+  const user = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+
+  if (!user || !pass) { errEl.textContent = '⚠ Enter username and password'; return; }
+
+  const userData = await fbGet(`users/${user}`);
+  if (!userData) { errEl.textContent = '⚠ User not found'; return; }
+  if (userData.password !== hashPassword(pass)) { errEl.textContent = '⚠ Invalid password'; return; }
+
+  currentUser = userData;
+  localStorage.setItem('dc_current_user', user);
+
+  // Update lastSeen
+  await fbSet(`users/${user}/lastSeen`, Date.now());
+
+  enterApp();
+}
+
+function handleLogout() {
+  if (syncInterval) clearInterval(syncInterval);
+  currentUser = null;
+  activeChatUser = null;
+  localStorage.removeItem('dc_current_user');
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appContainer').classList.remove('active');
+}
+
+async function autoLogin() {
+  const savedUser = localStorage.getItem('dc_current_user');
+  if (!savedUser) return;
+  const userData = await fbGet(`users/${savedUser}`);
+  if (userData) {
+    currentUser = userData;
+    await fbSet(`users/${savedUser}/lastSeen`, Date.now());
+    enterApp();
+  }
+}
+
+function enterApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appContainer').classList.add('active');
+  updateMyProfile();
+  loadContacts();
+  loadRequests();
+  startSync();
+  showToast(`Access granted: ${currentUser.username}`);
+}
+
+// ---- Profile ----
+function updateMyProfile() {
+  document.getElementById('myUsername').textContent = currentUser.username;
+  setAvatarContent('myAvatar', currentUser.avatar, currentUser.username);
+  setAvatarContent('profileAvatar', currentUser.avatar, currentUser.username);
+  document.getElementById('profileUsername').value = currentUser.username;
+  document.getElementById('profileStatus').value = currentUser.status || '';
+}
+
+function setAvatarContent(elId, avatarData, username) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (avatarData && avatarData.startsWith('data:')) {
+    el.innerHTML = `<img src="${avatarData}" alt="avatar">`;
+  } else {
+    el.textContent = username ? username[0].toUpperCase() : '💀';
+  }
+}
+
+function openProfileModal() {
+  document.getElementById('profileModal').classList.add('active');
+  document.getElementById('profileStatus').value = currentUser.status || '';
+  setAvatarContent('profileAvatar', currentUser.avatar, currentUser.username);
+}
+
+async function handleAvatarChange(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 200000) {
+    showToast('Image too large. Max 200KB.', true);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    currentUser.avatar = e.target.result;
+    await fbSet(`users/${currentUser.username}/avatar`, currentUser.avatar);
+    updateMyProfile();
+    showToast('Avatar updated');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const status = document.getElementById('profileStatus').value.trim();
+  currentUser.status = status;
+  await fbSet(`users/${currentUser.username}/status`, status);
+  updateMyProfile();
+  closeModal('profileModal');
+  showToast('Profile saved');
+}
+
+function openConfigModal() {
+  document.getElementById('configModal').classList.add('active');
+  document.getElementById('firebaseUrl').value = FIREBASE_URL;
+}
+
+function saveFirebaseConfig() {
+  const url = document.getElementById('firebaseUrl').value.trim().replace(/\/+$/, '');
+  FIREBASE_URL = url;
+  localStorage.setItem('dc_firebase_url', url);
+  closeModal('configModal');
+  showToast(url ? 'Firebase connected: Global mode active' : 'Local mode active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+// ---- Friend System ----
+function getChatId(user1, user2) {
+  return [user1, user2].sort().join('__');
+}
+
+async function sendFriendRequest() {
+  const target = document.getElementById('addFriendInput').value.trim().toLowerCase();
+  if (!target) return;
+  if (target === currentUser.username) { showToast('Cannot add yourself', true); return; }
+
+  // Check if user exists
+  const targetUser = await fbGet(`users/${target}`);
+  if (!targetUser) { showToast('User not found', true); return; }
+
+  // Check if already friends
+  const friendship = await fbGet(`friends/${getChatId(currentUser.username, target)}`);
+  if (friendship && friendship.status === 'accepted') { showToast('Already friends', true); return; }
+
+  // Check if request already sent
+  if (friendship && friendship.status === 'pending') { showToast('Request already pending', true); return; }
+
+  // Send request
+  await fbSet(`friends/${getChatId(currentUser.username, target)}`, {
+    from: currentUser.username,
+    to: target,
+    status: 'pending',
+    created: Date.now()
+  });
+
+  document.getElementById('addFriendInput').value = '';
+  showToast(`Request sent to ${target}`);
+  loadRequests();
+}
+
+async function acceptRequest(chatId) {
+  await fbSet(`friends/${chatId}/status`, 'accepted');
+  await fbSet(`friends/${chatId}/acceptedAt`, Date.now());
+  showToast('Friend request accepted');
+  loadContacts();
+  loadRequests();
+}
+
+async function declineRequest(chatId) {
+  await fbDelete(`friends/${chatId}`);
+  showToast('Request declined');
+  loadRequests();
+}
+
+async function loadContacts() {
+  const allFriends = await fbGet('friends') || {};
+  const contacts = [];
+
+  for (const [chatId, data] of Object.entries(allFriends)) {
+    if (data.status !== 'accepted') continue;
+    if (data.from !== currentUser.username && data.to !== currentUser.username) continue;
+    const friendName = data.from === currentUser.username ? data.to : data.from;
+    const friendData = await fbGet(`users/${friendName}`) || {};
+    const messages = await fbGet(`messages/${chatId}`) || {};
+    const msgArr = Object.values(messages).sort((a,b) => a.timestamp - b.timestamp);
+    const lastMsg = msgArr[msgArr.length - 1];
+
+    contacts.push({
+      chatId,
+      username: friendName,
+      avatar: friendData.avatar || '',
+      status: friendData.status || 'Offline',
+      lastSeen: friendData.lastSeen || 0,
+      lastMessage: lastMsg ? (lastMsg.image ? '📷 Image' : lastMsg.text) : '',
+      lastTime: lastMsg ? lastMsg.timestamp : data.acceptedAt || 0,
+      unread: 0
+    });
+  }
+
+  contacts.sort((a,b) => b.lastTime - a.lastTime);
+  renderContacts(contacts);
+}
+
+function renderContacts(contacts) {
+  const list = document.getElementById('contactList');
+  if (contacts.length === 0) {
+    list.innerHTML = '<div class="empty-state">No contacts yet.<br>Add a friend to start chatting.</div>';
+    return;
+  }
+  list.innerHTML = contacts.map(c => {
+    const isActive = activeChatUser === c.username ? 'active' : '';
+    const avatarContent = c.avatar && c.avatar.startsWith('data:')
+      ? `<img src="${c.avatar}" alt="">`
+      : (c.username[0] || '?').toUpperCase();
+    const isOnline = c.lastSeen && (Date.now() - c.lastSeen < 30000);
+    return `
+      <div class="contact-item ${isActive}" onclick="openChat('${c.username}', '${c.chatId}')">
+        <div class="avatar ${isOnline ? 'online' : ''}">${avatarContent}</div>
+        <div class="contact-info">
+          <div class="contact-name">${escapeHtml(c.username)}</div>
+          <div class="contact-last-msg">${c.lastMessage ? escapeHtml(c.lastMessage) : '<i style="color:var(--text-dim)">No messages</i>'}</div>
+        </div>
+        <div class="contact-time">${c.lastTime ? formatTime(c.lastTime) : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadRequests() {
+  const allFriends = await fbGet('friends') || {};
+  const incoming = [];
+  const outgoing = [];
+
+  for (const [chatId, data] of Object.entries(allFriends)) {
+    if (data.status !== 'pending') continue;
+    if (data.to === currentUser.username) {
+      incoming.push({ chatId, ...data });
+    } else if (data.from === currentUser.username) {
+      outgoing.push({ chatId, ...data });
+    }
+  }
+
+  const badge = document.getElementById('reqBadge');
+  if (incoming.length > 0) {
+    badge.textContent = incoming.length;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  renderRequests(incoming, outgoing);
+}
+
+function renderRequests(incoming, outgoing) {
+  const list = document.getElementById('requestList');
+  if (incoming.length === 0 && outgoing.length === 0) {
+    list.innerHTML = '<div class="empty-state">No pending requests.</div>';
+    return;
+  }
+  let html = '';
+  incoming.forEach(r => {
+    html += `
+      <div class="request-item">
+        <div class="avatar">${r.from[0].toUpperCase()}</div>
+        <div class="req-info">
+          <div class="req-name">${escapeHtml(r.from)}</div>
+          <div class="req-type">⬇ INCOMING REQUEST</div>
+        </div>
+        <div class="req-actions">
+          <button class="req-btn accept" onclick="acceptRequest('${r.chatId}')">✓ ACCEPT</button>
+          <button class="req-btn decline" onclick="declineRequest('${r.chatId}')">✕ DENY</button>
+        </div>
+      </div>
+    `;
+  });
+  outgoing.forEach(r => {
+    html += `
+      <div class="request-item">
+        <div class="avatar">${r.to[0].toUpperCase()}</div>
+        <div class="req-info">
+          <div class="req-name">${escapeHtml(r.to)}</div>
+          <div class="req-type">⬆ SENT • PENDING</div>
+        </div>
+      </div>
+    `;
+  });
+  list.innerHTML = html;
+}
+
+function switchSidebarTab(tab) {
+  document.getElementById('tabFriends').classList.toggle('active', tab === 'friends');
+  document.getElementById('tabRequests').classList.toggle('active', tab === 'requests');
+  document.getElementById('contactList').style.display = tab === 'friends' ? 'block' : 'none';
+  document.getElementById('requestList').style.display = tab === 'requests' ? 'block' : 'none';
+  document.getElementById('searchArea').style.display = tab === 'friends' ? 'block' : 'none';
+}
+
+// ---- Chat ----
+let currentChatId = null;
+let renderedMessageIds = new Set();
+
+async function openChat(username, chatId) {
+  activeChatUser = username;
+  currentChatId = chatId;
+  renderedMessageIds.clear();
+
+  document.getElementById('chatEmpty').style.display = 'none';
+  document.getElementById('chatView').style.display = 'flex';
+  document.getElementById('chatView').style.flexDirection = 'column';
+  document.getElementById('chatView').style.height = '100%';
+
+  const userData = await fbGet(`users/${username}`) || {};
+  document.getElementById('chatUserName').textContent = username;
+  const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 30000);
+  document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : (userData.lastSeen ? `Last seen ${formatTime(userData.lastSeen)}` : 'Offline');
+
+  setAvatarContent('chatAvatar', userData.avatar, username);
+
+  // Mark contacts as active
+  document.querySelectorAll('.contact-item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.contact-name')?.textContent === username);
+  });
+
+  // Mobile: hide sidebar
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.add('hidden');
+  }
+
+  await loadMessages();
+  document.getElementById('messageInput').focus();
+}
+
+async function loadMessages() {
+  if (!currentChatId) return;
+
+  const messages = await fbGet(`messages/${currentChatId}`) || {};
+  const msgArr = Object.entries(messages).map(([id, msg]) => ({ id, ...msg }));
+  msgArr.sort((a, b) => a.timestamp - b.timestamp);
+
+  const container = document.getElementById('messagesContainer');
+  const wasScrolledToBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+
+  let hasNewMessages = false;
+
+  msgArr.forEach(msg => {
+    if (renderedMessageIds.has(msg.id)) return;
+    renderedMessageIds.add(msg.id);
+    hasNewMessages = true;
+
+    const isSent = msg.sender === currentUser.username;
+    const div = document.createElement('div');
+    div.className = `message ${isSent ? 'sent' : 'received'}`;
+    div.dataset.id = msg.id;
+
+    let content = '';
+    if (msg.image) {
+      content += `<img class="msg-image" src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
+    }
+    if (msg.text) {
+      content += `<div>${escapeHtml(msg.text)}</div>`;
+    }
+
+    div.innerHTML = `
+      ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}</div>` : ''}
+      <div class="msg-bubble">${content}</div>
+      <div class="msg-time">${formatTime(msg.timestamp)}</div>
+    `;
+    container.appendChild(div);
+  });
+
+  if (hasNewMessages && wasScrolledToBottom) {
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // On first load, always scroll to bottom
+  if (hasNewMessages && msgArr.length === renderedMessageIds.size) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+async function sendMessage() {
+  if (!currentChatId || !activeChatUser) return;
+
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const msg = {
+    sender: currentUser.username,
+    text: text,
+    timestamp: Date.now()
+  };
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  await fbPush(`messages/${currentChatId}`, msg);
+  await loadMessages();
+  loadContacts(); // Update last message preview
+}
+
+async function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!currentChatId) { showToast('Open a chat first', true); return; }
+
+  // Compress if needed (max ~300KB for Firebase)
+  if (file.size > 500000) {
+    showToast('Image too large. Max 500KB.', true);
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const msg = {
+      sender: currentUser.username,
+      image: e.target.result,
+      text: '',
+      timestamp: Date.now()
+    };
+    await fbPush(`messages/${currentChatId}`, msg);
+    await loadMessages();
+    loadContacts();
+    showToast('Image sent');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function handleMsgKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+function previewImage(src) {
+  document.getElementById('imgPreviewSrc').src = src;
+  document.getElementById('imgPreview').classList.add('active');
+}
+
+function goBackToSidebar() {
+  document.getElementById('sidebar').classList.remove('hidden');
+  activeChatUser = null;
+  currentChatId = null;
+}
+
+// ---- Silent Sync (3-second refresh) ----
+function startSync() {
+  if (syncInterval) clearInterval(syncInterval);
+
+  syncInterval = setInterval(async () => {
+    const indicator = document.getElementById('syncIndicator');
+    indicator.classList.add('syncing');
+
+    try {
+      // Update our lastSeen
+      await fbSet(`users/${currentUser.username}/lastSeen`, Date.now());
+
+      // Reload current chat messages silently
+      if (currentChatId) {
+        await loadMessages();
+      }
+
+      // Reload contacts (for last message preview)
+      await loadContacts();
+
+      // Reload requests
+      await loadRequests();
+
+      // Reload current user data (in case avatar/status changed elsewhere)
+      const freshUser = await fbGet(`users/${currentUser.username}`);
+      if (freshUser) {
+        currentUser = freshUser;
+      }
+
+      // Update chat partner status
+      if (activeChatUser) {
+        const partnerData = await fbGet(`users/${activeChatUser}`);
+        if (partnerData) {
+          const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
+          document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
+        }
+      }
+    } catch (e) {
+      console.warn('Sync error:', e);
+    }
+
+    setTimeout(() => indicator.classList.remove('syncing'), 500);
+  }, 3000);
+}
+
+// ---- Matrix Rain Background ----
+function initMatrix() {
+  const canvas = document.getElementById('matrixCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*(){}[]|;:,.<>?/~`ÆÐÑØÞßæðñøþ';
+  const fontSize = 14;
+  const columns = Math.floor(canvas.width / fontSize);
+  const drops = Array(columns).fill(1);
+
+  function draw() {
+    ctx.fillStyle = 'rgba(10, 10, 15, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ff41';
+    ctx.font = fontSize + 'px monospace';
+
+    for (let i = 0; i < drops.length; i++) {
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+  }
+
+  setInterval(draw, 50);
+
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+}
+
+// ---- Boot Sequence ----
+window.addEventListener('DOMContentLoaded', () => {
+  initMatrix();
+  autoLogin();
+
+  // Enter key on login
+  document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.getElementById('loginUser').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  // Enter key on register
+  document.getElementById('regPassConfirm').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleRegister();
+  });
+
+  // Enter key on add friend
+  document.getElementById('addFriendInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendFriendRequest();
+  });
+
+  // Close modals on outside click
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
