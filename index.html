@@ -1120,6 +1120,67 @@ body {
   display: none;
 }
 
+/* Media download button */
+.media-item-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.media-download-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+  z-index: 5;
+}
+.media-item-wrapper:hover .media-download-btn {
+  opacity: 1;
+}
+.media-download-btn:hover {
+  background: rgba(0,255,65,0.6);
+}
+
+/* Sending status indicator */
+.msg-sending-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--yellow-primary);
+  margin-top: 4px;
+}
+.msg-sending-status .spinner-small {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--yellow-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.msg-sending-status.sent {
+  color: var(--green-dim);
+}
+.msg-sending-status.failed {
+  color: var(--red-primary);
+}
+.message.pending {
+  opacity: 0.8;
+}
+.message.pending .msg-bubble {
+  border-style: dashed;
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -2762,37 +2823,50 @@ async function loadMessages() {
 
       let content = '';
       
-      // Render multiple images
+      // Render multiple images with download buttons
       if (msg.images && msg.images.length > 0) {
         const gridClass = msg.images.length === 1 ? 'single' : 
                          msg.images.length === 3 ? 'multiple three-items' : 'multiple';
         content += `<div class="msg-media-grid ${gridClass}">`;
-        for (const img of msg.images) {
-          content += `<img src="${img}" alt="shared image" onclick="previewImage(this.src)">`;
-        }
-        content += '</div>';
-      }
-      
-      // Render single image (legacy support)
-      if (msg.image) {
-        content += `<div class="msg-media-grid single">`;
-        content += `<img src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
-        content += '</div>';
-      }
-      
-      // Render videos
-      if (msg.videos && msg.videos.length > 0) {
-        for (const vid of msg.videos) {
+        msg.images.forEach((img, idx) => {
           content += `
-            <div class="msg-video-container" onclick="toggleVideoPlay(this)">
-              <video src="${vid}" preload="metadata"></video>
-              <div class="play-overlay">▶</div>
+            <div class="media-item-wrapper">
+              <img src="${img}" alt="shared image" onclick="previewImage(this.src)">
+              <button class="media-download-btn" onclick="event.stopPropagation(); downloadMedia('${img}', 'image', ${idx})" title="Download">⬇</button>
             </div>
           `;
-        }
+        });
+        content += '</div>';
       }
       
-      // Render voice message
+      // Render single image (legacy support) with download button
+      if (msg.image) {
+        content += `<div class="msg-media-grid single">`;
+        content += `
+          <div class="media-item-wrapper">
+            <img src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">
+            <button class="media-download-btn" onclick="event.stopPropagation(); downloadMedia('${msg.image}', 'image', 0)" title="Download">⬇</button>
+          </div>
+        `;
+        content += '</div>';
+      }
+      
+      // Render videos with download buttons
+      if (msg.videos && msg.videos.length > 0) {
+        msg.videos.forEach((vid, idx) => {
+          content += `
+            <div class="media-item-wrapper">
+              <div class="msg-video-container" onclick="toggleVideoPlay(this)">
+                <video src="${vid}" preload="metadata"></video>
+                <div class="play-overlay">▶</div>
+              </div>
+              <button class="media-download-btn" onclick="event.stopPropagation(); downloadMedia('${vid}', 'video', ${idx})" title="Download">⬇</button>
+            </div>
+          `;
+        });
+      }
+      
+      // Render voice message with download button
       if (msg.audio) {
         const duration = msg.audioDuration || 0;
         const mins = Math.floor(duration / 60).toString().padStart(2, '0');
@@ -2805,6 +2879,7 @@ async function loadMessages() {
             </div>
             <span class="audio-duration">${mins}:${secs}</span>
             <audio src="${msg.audio}" preload="metadata"></audio>
+            <button class="media-download-btn" style="position:relative; opacity:1; top:0; right:0;" onclick="downloadMedia('${msg.audio}', 'audio', 0)" title="Download">⬇</button>
           </div>
         `;
       }
@@ -2996,36 +3071,6 @@ function scrollToBottom() {
   const container = document.getElementById('messagesContainer');
   container.scrollTop = container.scrollHeight;
   document.getElementById('newMsgIndicator').style.display = 'none';
-}
-
-async function sendMessage() {
-  if (!currentChatId || !activeChatUser) return;
-
-  const input = document.getElementById('messageInput');
-  const text = input.value.trim();
-  if (!text) return;
-
-  const msg = {
-    sender: currentUser.username,
-    text: text,
-    timestamp: Date.now(),
-    delivered: true,
-    readBy: {}
-  };
-
-  input.value = '';
-  input.style.height = 'auto';
-  
-  clearTyping();
-
-  try {
-    await fbPush(`messages/${currentChatId}`, msg);
-    await loadMessages();
-    scrollToBottom();
-    loadContacts();
-  } catch(e) {
-    showToast('Failed to send message', true);
-  }
 }
 
 // ---- Multimedia State ----
@@ -3299,7 +3344,7 @@ function updateRecordingTime() {
   }
 }
 
-// ---- Updated Send Message (with multimedia support) ----
+// ---- Updated Send Message (with multimedia support & optimistic UI) ----
 async function sendMessage() {
   if (!currentChatId || !activeChatUser) return;
   
@@ -3321,6 +3366,9 @@ async function sendMessage() {
   // If no text and no media, do nothing
   if (!text) return;
 
+  const container = document.getElementById('messagesContainer');
+  const tempId = 'temp_' + Date.now();
+  
   const msg = {
     sender: currentUser.username,
     text: text,
@@ -3333,23 +3381,60 @@ async function sendMessage() {
   input.style.height = 'auto';
   clearTyping();
 
+  // ---- OPTIMISTIC UI: Show message immediately ----
+  const pendingDiv = document.createElement('div');
+  pendingDiv.className = 'message sent pending';
+  pendingDiv.dataset.tempId = tempId;
+  pendingDiv.innerHTML = `
+    <div class="msg-bubble">
+      <div>${escapeHtml(text)}</div>
+    </div>
+    <div class="msg-meta">
+      <div class="msg-sending-status" id="status_${tempId}">
+        <div class="spinner-small"></div>
+        <span>Sending...</span>
+      </div>
+    </div>
+  `;
+  container.appendChild(pendingDiv);
+  scrollToBottom();
+
   try {
     await fbPush(`messages/${currentChatId}`, msg);
+    
+    // Update status to sent
+    const statusEl = document.getElementById(`status_${tempId}`);
+    if (statusEl) {
+      statusEl.classList.add('sent');
+      statusEl.innerHTML = '<span>✓ Sent</span>';
+    }
+    pendingDiv.classList.remove('pending');
+    
+    // Reload to get proper message
     await loadMessages();
-    scrollToBottom();
+    pendingDiv.remove();
+    
     loadContacts();
   } catch(e) {
+    // Update status to failed
+    const statusEl = document.getElementById(`status_${tempId}`);
+    if (statusEl) {
+      statusEl.classList.add('failed');
+      statusEl.innerHTML = '<span>✕ Failed</span>';
+    }
     showToast('Failed to send message', true);
   }
 }
 
 async function sendMediaMessage(text) {
   const input = document.getElementById('messageInput');
+  const container = document.getElementById('messagesContainer');
   
   // Prepare media arrays
   const images = pendingMediaFiles.filter(f => f.type === 'image').map(f => f.data);
   const videos = pendingMediaFiles.filter(f => f.type === 'video').map(f => f.data);
   
+  const tempId = 'temp_' + Date.now();
   const msg = {
     sender: currentUser.username,
     text: text || '',
@@ -3360,25 +3445,145 @@ async function sendMediaMessage(text) {
   
   // Add media to message
   if (images.length > 0) {
-    msg.images = images; // Array of base64 images
+    msg.images = images;
   }
   if (videos.length > 0) {
-    msg.videos = videos; // Array of base64 videos
+    msg.videos = videos;
   }
   
   input.value = '';
   input.style.height = 'auto';
+  
+  // ---- OPTIMISTIC UI: Show immediately with "Sending..." status ----
+  const pendingDiv = document.createElement('div');
+  pendingDiv.className = 'message sent pending';
+  pendingDiv.dataset.tempId = tempId;
+  
+  let previewContent = '';
+  
+  // Preview images
+  if (images.length > 0) {
+    const gridClass = images.length === 1 ? 'single' : 
+                     images.length === 3 ? 'multiple three-items' : 'multiple';
+    previewContent += `<div class="msg-media-grid ${gridClass}">`;
+    images.forEach(img => {
+      previewContent += `<div class="media-item-wrapper"><img src="${img}" alt="sending..."></div>`;
+    });
+    previewContent += '</div>';
+  }
+  
+  // Preview videos
+  if (videos.length > 0) {
+    videos.forEach(vid => {
+      previewContent += `
+        <div class="media-item-wrapper">
+          <div class="msg-video-container">
+            <video src="${vid}" preload="metadata"></video>
+            <div class="play-overlay">▶</div>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  // Preview text
+  if (msg.text) {
+    previewContent += `<div>${escapeHtml(msg.text)}</div>`;
+  }
+  
+  pendingDiv.innerHTML = `
+    <div class="msg-bubble">${previewContent}</div>
+    <div class="msg-meta">
+      <div class="msg-sending-status" id="status_${tempId}">
+        <div class="spinner-small"></div>
+        <span>Sending...</span>
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(pendingDiv);
+  scrollToBottom();
+  
   clearMediaPreviews();
   clearTyping();
 
   try {
+    // Upload to Firebase
     await fbPush(`messages/${currentChatId}`, msg);
+    
+    // Update status to "Sent"
+    const statusEl = document.getElementById(`status_${tempId}`);
+    if (statusEl) {
+      statusEl.classList.add('sent');
+      statusEl.innerHTML = '<span>✓ Sent</span>';
+    }
+    pendingDiv.classList.remove('pending');
+    
+    // Reload to get the real message with proper ID
     await loadMessages();
-    scrollToBottom();
+    
+    // Remove the temporary message (real one is now loaded)
+    pendingDiv.remove();
+    
     loadContacts();
-    showToast('Media sent');
   } catch(e) {
+    // Update status to "Failed"
+    const statusEl = document.getElementById(`status_${tempId}`);
+    if (statusEl) {
+      statusEl.classList.add('failed');
+      statusEl.innerHTML = '<span>✕ Failed - tap to retry</span>';
+    }
+    pendingDiv.onclick = () => {
+      pendingDiv.remove();
+      pendingMediaFiles = images.map(d => ({type:'image', data:d})).concat(videos.map(d => ({type:'video', data:d})));
+      updateMediaPreview();
+      showToast('Media restored. Tap send to retry.');
+    };
     showToast('Failed to send media: ' + e.message, true);
+  }
+}
+
+// Download media function
+function downloadMedia(dataUrl, type, index) {
+  try {
+    // Extract the base64 data and mime type
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      showToast('Could not download file', true);
+      return;
+    }
+    
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    
+    // Convert base64 to blob
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    
+    // Generate filename
+    const extension = mimeType.split('/')[1] || (type === 'image' ? 'jpg' : type === 'video' ? 'mp4' : 'webm');
+    const timestamp = new Date().toISOString().slice(0,19).replace(/[:-]/g, '');
+    const filename = `darkchat_${type}_${timestamp}_${index}.${extension}`;
+    
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`Downloading ${type}...`);
+  } catch(e) {
+    console.error('Download error:', e);
+    showToast('Download failed', true);
   }
 }
 
