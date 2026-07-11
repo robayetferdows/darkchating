@@ -1730,6 +1730,134 @@ body {
 }
 .sv-viewers-btn.active { display: flex; }
 
+/* Story Reply Bar */
+.story-reply-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent);
+  padding-top: 30px;
+}
+.story-reply-bar input {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  outline: none;
+  transition: border 0.3s;
+}
+.story-reply-bar input:focus {
+  border-color: var(--green-primary);
+  background: rgba(255,255,255,0.15);
+}
+.story-reply-bar input::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+.story-reply-send {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  color: var(--green-primary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.story-reply-send:hover {
+  background: #005500;
+  box-shadow: 0 0 12px var(--green-glow);
+}
+.story-reply-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.story-love-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  position: relative;
+}
+.story-love-btn:hover { transform: scale(1.15); }
+.story-love-btn:active { transform: scale(0.9); }
+.story-love-btn.loved { color: #ff3b5c; }
+
+/* Love count badge */
+.story-love-count {
+  position: absolute;
+  top: -2px; right: -2px;
+  background: #ff3b5c;
+  color: #fff;
+  font-size: 9px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+}
+
+/* Floating heart animation */
+.floating-heart {
+  position: absolute;
+  font-size: 30px;
+  pointer-events: none;
+  z-index: 20;
+  animation: floatUpHeart 1.2s ease-out forwards;
+}
+@keyframes floatUpHeart {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-80px) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-160px) scale(0.8);
+  }
+}
+
+/* Reply sent confirmation */
+.reply-sent-toast {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(0,255,65,0.2);
+  border: 1px solid var(--green-dim);
+  border-radius: 20px;
+  color: var(--green-primary);
+  font-size: 11px;
+  z-index: 15;
+  animation: fadeIn 0.3s ease, fadeOut 0.5s ease 1.5s forwards;
+}
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -2278,9 +2406,20 @@ body {
     <span class="music-state" id="svMusicState">▶ PLAY</span>
   </div>
   
+  <!-- Story Reply Bar + Love Reaction (shown on others' stories) -->
+  <div class="story-reply-bar" id="storyReplyBar" style="display:none;">
+    <input type="text" id="storyReplyInput" placeholder="Reply to story..." onkeydown="if(event.key==='Enter') sendStoryReply()" onfocus="pauseStoryForReply()" onblur="resumeStoryAfterReply()">
+    <button class="story-reply-send" onclick="sendStoryReply()" title="Send Reply">▶</button>
+    <button class="story-love-btn" id="storyLoveBtn" onclick="toggleStoryLove()">
+      🤍
+      <span class="story-love-count" id="storyLoveCount" style="display:none;">0</span>
+    </button>
+  </div>
+  
   <!-- Viewers Button (only shown on own stories) -->
   <button class="sv-viewers-btn" id="svViewersBtn" onclick="toggleViewersPanel()">
     👁 <span id="svViewerCount">0</span> viewers
+    · ❤️ <span id="svLoveTotal">0</span>
   </button>
   
   <!-- Viewers Panel (slides up) -->
@@ -2293,10 +2432,9 @@ body {
     <div class="story-viewers-list" id="storyViewersList"></div>
   </div>
   
-  <!-- Music Player iframe - sized properly for browser autoplay policy -->
+  <!-- Music Player iframe -->
   <iframe id="storyMusicPlayer" class="story-music-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
   
-  <!-- Hidden audio element for direct playback fallback -->
   <audio id="storyAudioFallback" crossorigin="anonymous" style="display:none;"></audio>
 </div>
 
@@ -3277,7 +3415,7 @@ async function loadContacts() {
         avatar: friendData.avatar || '',
         status: friendData.status || 'Offline',
         lastSeen: friendData.lastSeen || 0,
-        lastMessage: lastMsg ? (lastMsg.image ? '📷 Image' : lastMsg.text) : '',
+        lastMessage: lastMsg ? (lastMsg.storyReply ? '↩ Story reply: ' + lastMsg.text : lastMsg.image ? '📷 Image' : lastMsg.images ? '📷 Images' : lastMsg.audio ? '🎤 Voice' : lastMsg.text) : '',
         lastTime: lastMsg ? lastMsg.timestamp : data.acceptedAt || 0,
         unread: 0,
         verified: friendData.verified || false
@@ -3540,6 +3678,15 @@ async function loadMessages() {
             <span class="audio-duration">${mins}:${secs}</span>
             <audio src="${msg.audio}" preload="metadata"></audio>
             <button class="media-download-btn" style="position:relative; opacity:1; top:0; right:0;" onclick="downloadMedia('${msg.audio}', 'audio', 0)" title="Download">⬇</button>
+          </div>
+        `;
+      }
+      
+      // Render story reply context badge (if this message is a reply to a story)
+      if (msg.storyReply) {
+        content += `
+          <div style="padding:6px 10px;margin-bottom:6px;background:rgba(0,255,65,0.05);border-left:3px solid var(--green-dark);border-radius:0 4px 4px 0;font-size:10px;color:var(--text-secondary);">
+            <span style="color:var(--green-dim);">↩ Replied to ${msg.storyReply.storyPreview || 'story'}</span>
           </div>
         `;
       }
@@ -5320,12 +5467,32 @@ async function renderCurrentStory() {
   
   // Show/hide viewers button (only for own stories)
   const viewersBtn = document.getElementById('svViewersBtn');
+  const replyBar = document.getElementById('storyReplyBar');
+  const loveBtn = document.getElementById('storyLoveBtn');
+  const loveCountEl = document.getElementById('storyLoveCount');
+  
   if (entry.isOwn) {
+    // Own story: show viewer count + love total, hide reply bar
     const viewerCount = story.viewedBy ? Object.keys(story.viewedBy).length : 0;
+    const loveTotal = story.lovedBy ? Object.keys(story.lovedBy).length : 0;
     document.getElementById('svViewerCount').textContent = viewerCount;
+    document.getElementById('svLoveTotal').textContent = loveTotal;
     viewersBtn.classList.add('active');
+    replyBar.style.display = 'none';
   } else {
+    // Other's story: show reply bar + love button, hide viewers button
     viewersBtn.classList.remove('active');
+    replyBar.style.display = 'flex';
+    document.getElementById('storyReplyInput').value = '';
+    
+    // Set love button state
+    const lovedBy = story.lovedBy || {};
+    const iLoved = !!lovedBy[currentUser.username];
+    loveBtn.classList.toggle('loved', iLoved);
+    setLoveBtnIcon(iLoved);
+    
+    // Show love count badge
+    updateLoveCountDisplay(story);
   }
   
   // Hide viewers panel if open
@@ -5354,20 +5521,24 @@ function toggleViewersPanel() {
   
   const story = stories[index];
   const viewedBy = story.viewedBy || {};
+  const lovedBy = story.lovedBy || {};
   const viewers = Object.entries(viewedBy);
+  const loveCount = Object.keys(lovedBy).length;
   
-  document.getElementById('viewerPanelCount').textContent = `${viewers.length} view(s)`;
+  document.getElementById('viewerPanelCount').textContent = `${viewers.length} view(s) · ${loveCount} ❤️`;
   
   const list = document.getElementById('storyViewersList');
   
-  if (viewers.length === 0) {
+  if (viewers.length === 0 && loveCount === 0) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:11px;">No one has viewed this story yet.</div>';
   } else {
+    // Combine viewers — mark who also loved
     list.innerHTML = viewers.map(([username, viewTime]) => {
       const userData = allUsersCache[username] || {};
       const displayName = userData.displayName || username;
       const avatar = userData.avatar || '';
       const verified = userData.verified ? '<span class="verified-badge-small">✓</span>' : '';
+      const loved = lovedBy[username] ? ' <span style="color:#ff3b5c;font-size:14px;" title="Loved your story">❤️</span>' : '';
       
       const avatarHtml = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'))
         ? `<img src="${avatar}" alt="">`
@@ -5377,7 +5548,7 @@ function toggleViewersPanel() {
         <div class="story-viewer-item">
           <div class="svi-avatar">${avatarHtml}</div>
           <div class="svi-info">
-            <div class="svi-name">${escapeHtml(displayName)}${verified}</div>
+            <div class="svi-name">${escapeHtml(displayName)}${verified}${loved}</div>
             <div class="svi-time">Viewed ${formatTime(viewTime)}</div>
           </div>
         </div>
@@ -5418,6 +5589,164 @@ function clearStoryTimer() {
     clearInterval(storyTimerInterval);
     storyTimerInterval = null;
   }
+}
+
+// ---- Story Love Reaction ----
+async function toggleStoryLove() {
+  const { stories, index, entry } = currentStoryView;
+  if (!stories[index] || entry.isOwn) return;
+  
+  const story = stories[index];
+  const loveBtn = document.getElementById('storyLoveBtn');
+  const lovedBy = story.lovedBy || {};
+  const alreadyLoved = !!lovedBy[currentUser.username];
+  
+  try {
+    if (alreadyLoved) {
+      // Un-love
+      await fbDelete(`stories/${entry.username}/${story.id}/lovedBy/${currentUser.username}`);
+      delete lovedBy[currentUser.username];
+      story.lovedBy = lovedBy;
+      loveBtn.classList.remove('loved');
+      setLoveBtnIcon(false);
+    } else {
+      // Love it
+      await fbSet(`stories/${entry.username}/${story.id}/lovedBy/${currentUser.username}`, Date.now());
+      lovedBy[currentUser.username] = Date.now();
+      story.lovedBy = lovedBy;
+      loveBtn.classList.add('loved');
+      setLoveBtnIcon(true);
+      
+      // Spawn floating heart animation
+      spawnFloatingHeart(loveBtn);
+    }
+    
+    updateLoveCountDisplay(story);
+    
+  } catch(e) {
+    showToast('Failed to react', true);
+  }
+}
+
+// Set love button icon without destroying the count badge
+function setLoveBtnIcon(isLoved) {
+  const btn = document.getElementById('storyLoveBtn');
+  const countEl = document.getElementById('storyLoveCount');
+  // Preserve the count element
+  const countHTML = countEl ? countEl.outerHTML : '<span class="story-love-count" id="storyLoveCount" style="display:none;">0</span>';
+  btn.innerHTML = (isLoved ? '❤️' : '🤍') + countHTML;
+}
+
+function spawnFloatingHeart(anchorEl) {
+  const viewer = document.getElementById('storyViewer');
+  const rect = anchorEl.getBoundingClientRect();
+  
+  const heart = document.createElement('div');
+  heart.className = 'floating-heart';
+  heart.textContent = '❤️';
+  heart.style.left = (rect.left + rect.width / 2 - 15) + 'px';
+  heart.style.top = (rect.top - 10) + 'px';
+  viewer.appendChild(heart);
+  
+  setTimeout(() => heart.remove(), 1300);
+}
+
+function updateLoveCountDisplay(story) {
+  const lovedBy = story.lovedBy || {};
+  const count = Object.keys(lovedBy).length;
+  
+  const countEl = document.getElementById('storyLoveCount');
+  if (count > 0) {
+    countEl.textContent = count;
+    countEl.style.display = 'flex';
+  } else {
+    countEl.style.display = 'none';
+  }
+  
+  // Also update the owner's viewer button total
+  const totalEl = document.getElementById('svLoveTotal');
+  if (totalEl) totalEl.textContent = count;
+}
+
+// ---- Story Reply (sends as DM to story owner) ----
+async function sendStoryReply() {
+  const input = document.getElementById('storyReplyInput');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  const { entry, stories, index } = currentStoryView;
+  if (!entry || entry.isOwn) return;
+  
+  const storyOwner = entry.username;
+  const chatId = getChatId(currentUser.username, storyOwner);
+  
+  // Check if they are friends (they should be since they can see the story)
+  const friendship = await fbGet(`friends/${chatId}`);
+  if (!friendship || friendship.status !== 'accepted') {
+    showToast('You must be friends to reply', true);
+    return;
+  }
+  
+  const story = stories[index];
+  
+  // Build the reply message with story context
+  const replyMsg = {
+    sender: currentUser.username,
+    text: text,
+    timestamp: Date.now(),
+    delivered: true,
+    readBy: {},
+    storyReply: {
+      storyOwner: storyOwner,
+      storyId: story.id,
+      storyType: story.type,
+      storyTimestamp: story.timestamp,
+      // Include a tiny thumbnail reference (not the full media to save space)
+      storyPreview: story.type === 'image' ? '📷 Photo story' : '🎬 Video story'
+    }
+  };
+  
+  input.value = '';
+  
+  try {
+    await fbPush(`messages/${chatId}`, replyMsg);
+    
+    // Show sent confirmation inside the story viewer
+    showStoryReplyConfirmation();
+    
+  } catch(e) {
+    showToast('Failed to send reply', true);
+  }
+}
+
+function showStoryReplyConfirmation() {
+  const viewer = document.getElementById('storyViewer');
+  
+  // Remove any existing toast
+  viewer.querySelectorAll('.reply-sent-toast').forEach(el => el.remove());
+  
+  const toast = document.createElement('div');
+  toast.className = 'reply-sent-toast';
+  toast.textContent = '✓ Reply sent to their inbox';
+  viewer.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 2200);
+}
+
+// Pause story timer while typing a reply
+function pauseStoryForReply() {
+  clearStoryTimer();
+}
+
+// Resume story timer after finishing reply
+function resumeStoryAfterReply() {
+  // Small delay so clicking send doesn't immediately resume
+  setTimeout(() => {
+    const input = document.getElementById('storyReplyInput');
+    if (document.activeElement !== input) {
+      startStoryTimer();
+    }
+  }, 300);
 }
 
 function nextStory() {
