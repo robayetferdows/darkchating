@@ -19,6 +19,7 @@
   --green-dark: #004d14;
   --green-glow: rgba(0,255,65,0.15);
   --red-primary: #ff0040;
+  --yellow-primary: #ffcc00;
   --cyan-primary: #00e5ff;
   --text-primary: #c8ffc8;
   --text-secondary: #6a8a6a;
@@ -71,17 +72,6 @@ body {
   0% { top: -10%; }
   100% { top: 110%; }
 }
-@keyframes typewriter {
-  from { width: 0; }
-  to { width: 100%; }
-}
-@keyframes blink-caret {
-  50% { border-color: transparent; }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @keyframes pulse-green {
   0%, 100% { box-shadow: 0 0 5px var(--green-glow); }
   50% { box-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,65,0.05); }
@@ -89,6 +79,18 @@ body {
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-20px); }
   to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Scanline overlay */
@@ -115,17 +117,79 @@ body {
   animation: scanline 8s linear infinite;
 }
 
-/* Auth Screen */
-.auth-container {
+/* Setup Screen */
+.setup-container {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 200;
+  background: var(--bg-primary);
+}
+.setup-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 40px;
+  width: 520px;
+  max-width: 95vw;
+  position: relative;
+  animation: pulse-green 3s infinite;
+}
+.setup-box h2 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 24px;
+  color: var(--green-primary);
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 3px;
+}
+.setup-box .subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-bottom: 25px;
+  line-height: 1.8;
+}
+.setup-steps {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 11px;
+  line-height: 2;
+  color: var(--text-secondary);
+}
+.setup-steps ol {
+  padding-left: 20px;
+}
+.setup-steps a {
+  color: var(--green-primary);
+  text-decoration: underline;
+}
+.setup-steps code {
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--yellow-primary);
+  font-size: 10px;
+}
+
+/* Auth Screen */
+.auth-container {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
   z-index: 100;
   background: var(--bg-primary);
 }
+.auth-container.active { display: flex; }
 .auth-box {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -246,6 +310,10 @@ body {
   background: linear-gradient(135deg, #005500, var(--green-dark));
   box-shadow: 0 0 20px var(--green-glow);
 }
+.auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .auth-error {
   color: var(--red-primary);
   font-size: 11px;
@@ -261,23 +329,40 @@ body {
   min-height: 16px;
 }
 
-/* Firebase Config Modal */
-.config-notice {
-  margin-top: 20px;
-  padding: 12px;
-  background: rgba(0,255,65,0.05);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+/* Connection Status Bar */
+.connection-bar {
+  padding: 8px 16px;
   font-size: 10px;
-  color: var(--text-secondary);
   text-align: center;
-  line-height: 1.6;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.config-notice a {
+.connection-bar.connected {
+  background: rgba(0,255,65,0.08);
   color: var(--green-primary);
-  cursor: pointer;
-  text-decoration: underline;
+  border-bottom: 1px solid var(--green-dark);
 }
+.connection-bar.disconnected {
+  background: rgba(255,0,64,0.08);
+  color: var(--red-primary);
+  border-bottom: 1px solid rgba(255,0,64,0.3);
+}
+.connection-bar.connecting {
+  background: rgba(255,204,0,0.08);
+  color: var(--yellow-primary);
+  border-bottom: 1px solid rgba(255,204,0,0.3);
+}
+.connection-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.connection-bar.connected .connection-dot { background: var(--green-primary); box-shadow: 0 0 8px var(--green-primary); }
+.connection-bar.disconnected .connection-dot { background: var(--red-primary); }
+.connection-bar.connecting .connection-dot { background: var(--yellow-primary); animation: blink 1s infinite; }
 
 /* Main App Layout */
 .app-container {
@@ -285,8 +370,14 @@ body {
   height: 100vh;
   position: relative;
   z-index: 10;
+  flex-direction: column;
 }
 .app-container.active { display: flex; }
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 
 /* Sidebar */
 .sidebar {
@@ -296,7 +387,7 @@ body {
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
 }
 .sidebar-header {
   padding: 16px 20px;
@@ -391,17 +482,17 @@ body {
   letter-spacing: 1px;
 }
 
-/* Tabs (Friends / Requests) */
+/* Tabs (Friends / Requests / Search) */
 .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-color);
 }
 .sidebar-tab {
   flex: 1;
-  padding: 10px;
+  padding: 10px 6px;
   text-align: center;
-  font-size: 10px;
-  letter-spacing: 2px;
+  font-size: 9px;
+  letter-spacing: 1px;
   color: var(--text-secondary);
   cursor: pointer;
   border: none;
@@ -418,7 +509,7 @@ body {
 .sidebar-tab .badge {
   position: absolute;
   top: 4px;
-  right: calc(50% - 30px);
+  right: calc(50% - 28px);
   background: var(--red-primary);
   color: #fff;
   font-size: 9px;
@@ -519,6 +610,43 @@ body {
   padding: 2px 6px;
   border-radius: 8px;
   font-weight: 700;
+}
+
+/* Search Results */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  animation: slideIn 0.3s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item .result-info { flex: 1; }
+.search-result-item .result-name {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.search-result-item .result-status {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+.search-result-item .add-btn {
+  padding: 5px 12px;
+  font-size: 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  color: var(--green-primary);
+  transition: all 0.3s;
+}
+.search-result-item .add-btn:hover { box-shadow: 0 0 8px var(--green-glow); }
+.search-result-item .add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Friend Request Item */
@@ -834,19 +962,6 @@ body {
   color: var(--red-primary);
 }
 
-/* Firebase config section */
-.firebase-config-section {
-  padding: 20px;
-  border-bottom: 1px solid var(--border-color);
-  background: rgba(255,0,64,0.03);
-}
-.firebase-config-section p {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  letter-spacing: 1px;
-}
-
 /* Empty states */
 .empty-state {
   padding: 40px 20px;
@@ -857,20 +972,14 @@ body {
   line-height: 2;
 }
 
-/* Loading indicator */
-.sync-indicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
+/* Loading spinner */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--green-primary);
   border-radius: 50%;
-  background: var(--green-dark);
-  transition: background 0.3s;
-}
-.sync-indicator.syncing {
-  background: var(--green-primary);
-  box-shadow: 0 0 8px var(--green-glow);
+  animation: spin 0.8s linear infinite;
+  margin: 20px auto;
 }
 
 /* Responsive */
@@ -897,11 +1006,34 @@ body {
 .typing-indicator {
   font-size: 11px;
   color: var(--green-dim);
-  padding: 4px 0;
+  padding: 8px 20px;
   font-style: italic;
   display: none;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
 }
 .typing-indicator.active { display: block; }
+
+/* New message notification */
+.new-msg-indicator {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--green-primary);
+  cursor: pointer;
+  display: none;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.new-msg-indicator:hover {
+  background: #005500;
+}
 </style>
 </head>
 <body>
@@ -913,6 +1045,38 @@ body {
 <!-- IMAGE PREVIEW -->
 <div class="img-preview-overlay" id="imgPreview" onclick="this.classList.remove('active')">
   <img id="imgPreviewSrc" src="" alt="Preview">
+</div>
+
+<!-- SETUP SCREEN (Firebase Required) -->
+<div class="setup-container" id="setupScreen">
+  <div class="setup-box">
+    <h2>⚡ INITIAL SETUP</h2>
+    <p class="subtitle">DARK CHAT requires Firebase Realtime Database for global cross-device communication.</p>
+    
+    <div class="setup-steps">
+      <ol>
+        <li>Go to <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
+        <li>Create a new project (or select existing)</li>
+        <li>Navigate to <strong>Build → Realtime Database</strong></li>
+        <li>Click <strong>"Create Database"</strong> → Start in <strong>Test Mode</strong></li>
+        <li>Copy your database URL (looks like: <code>https://your-project-id.firebaseio.com</code>)</li>
+        <li>Paste it below and connect!</li>
+      </ol>
+    </div>
+    
+    <div class="form-group">
+      <label>> Firebase Database URL</label>
+      <input type="text" id="setupFirebaseUrl" placeholder="https://your-project-id.firebaseio.com">
+    </div>
+    
+    <button class="auth-btn" onclick="setupFirebase()" id="setupBtn">🔗 CONNECT & VERIFY</button>
+    <div class="auth-error" id="setupError"></div>
+    <div class="auth-success" id="setupSuccess"></div>
+    
+    <div style="margin-top: 20px; padding: 12px; background: rgba(255,204,0,0.05); border: 1px solid rgba(255,204,0,0.2); border-radius: 4px; font-size: 10px; color: var(--yellow-primary); text-align: center;">
+      ⚠ Test Mode allows public read/write for 30 days. For production, configure proper security rules.
+    </div>
+  </div>
 </div>
 
 <!-- AUTH SCREEN -->
@@ -939,7 +1103,7 @@ body {
         <label>> Password</label>
         <input type="password" id="loginPass" placeholder="••••••••">
       </div>
-      <button class="auth-btn" onclick="handleLogin()">⚡ INITIATE ACCESS ⚡</button>
+      <button class="auth-btn" onclick="handleLogin()" id="loginBtn">⚡ INITIATE ACCESS ⚡</button>
       <div class="auth-error" id="loginError"></div>
     </div>
 
@@ -957,94 +1121,118 @@ body {
         <label>> Confirm Password</label>
         <input type="password" id="regPassConfirm" placeholder="••••••••">
       </div>
-      <button class="auth-btn" onclick="handleRegister()">🔐 CREATE IDENTITY 🔐</button>
+      <button class="auth-btn" onclick="handleRegister()" id="regBtn">🔐 CREATE IDENTITY 🔐</button>
       <div class="auth-error" id="regError"></div>
       <div class="auth-success" id="regSuccess"></div>
     </div>
-
-    <div class="config-notice">
-      🌐 GLOBAL MODE: Uses Firebase Realtime DB for cross-network comms.<br>
-      <a onclick="openConfigModal()">⚙ Configure Firebase</a> | Default demo DB included.
+    
+    <div style="margin-top: 16px; text-align: center;">
+      <a onclick="openConfigModal()" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; letter-spacing: 1px;">⚙ CHANGE DATABASE CONFIG</a>
     </div>
   </div>
 </div>
 
 <!-- MAIN APP -->
 <div class="app-container" id="appContainer">
-
-  <!-- SIDEBAR -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <h2>💀 DARK CHAT</h2>
-      <div class="header-actions">
-        <button class="icon-btn" onclick="openProfileModal()" title="Profile">👤</button>
-        <button class="icon-btn" onclick="handleLogout()" title="Logout">⏻</button>
-      </div>
-    </div>
-
-    <div class="user-profile-bar" onclick="openProfileModal()">
-      <div class="avatar online" id="myAvatar">💀</div>
-      <div class="user-info">
-        <div class="username" id="myUsername">-</div>
-        <div class="status">● SECURE CONNECTION ACTIVE</div>
-      </div>
-    </div>
-
-    <div class="sidebar-tabs">
-      <button class="sidebar-tab active" id="tabFriends" onclick="switchSidebarTab('friends')">CONTACTS</button>
-      <button class="sidebar-tab" id="tabRequests" onclick="switchSidebarTab('requests')">
-        REQUESTS
-        <span class="badge" id="reqBadge" style="display:none">0</span>
-      </button>
-    </div>
-
-    <div class="sidebar-search" id="searchArea">
-      <div class="search-input-wrap">
-        <input type="text" id="addFriendInput" placeholder="username to add...">
-        <button onclick="sendFriendRequest()">+ ADD</button>
-      </div>
-    </div>
-
-    <div class="contact-list" id="contactList">
-      <div class="empty-state">No contacts yet.<br>Add a friend to start chatting.</div>
-    </div>
-
-    <div class="contact-list" id="requestList" style="display:none;">
-      <div class="empty-state">No pending requests.</div>
-    </div>
+  <!-- Connection Status Bar -->
+  <div class="connection-bar connected" id="connectionBar">
+    <span class="connection-dot"></span>
+    <span id="connectionText">CONNECTED TO GLOBAL NETWORK</span>
   </div>
 
-  <!-- CHAT AREA -->
-  <div class="chat-area" id="chatArea">
-    <div class="sync-indicator" id="syncIndicator"></div>
-
-    <div class="chat-empty" id="chatEmpty">
-      <div class="big-icon">🔒</div>
-      <p>SELECT A CONTACT TO BEGIN</p>
-      <p style="font-size:10px; color:var(--text-dim)">All messages are synced globally via encrypted channels</p>
-    </div>
-
-    <div id="chatView" style="display:none;">
-      <div class="chat-header">
-        <button class="back-btn" onclick="goBackToSidebar()">←</button>
-        <div class="avatar" id="chatAvatar">💀</div>
-        <div>
-          <div class="chat-user-name" id="chatUserName">-</div>
-          <div class="chat-user-status" id="chatUserStatus">-</div>
+  <div class="app-main">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>💀 DARK CHAT</h2>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openProfileModal()" title="Profile">👤</button>
+          <button class="icon-btn" onclick="handleLogout()" title="Logout">⏻</button>
         </div>
       </div>
 
-      <div class="messages-container" id="messagesContainer"></div>
-
-      <div class="typing-indicator" id="typingIndicator">
-        <span id="typingText">user is typing...</span>
+      <div class="user-profile-bar" onclick="openProfileModal()">
+        <div class="avatar online" id="myAvatar">💀</div>
+        <div class="user-info">
+          <div class="username" id="myUsername">-</div>
+          <div class="status">● SECURE CONNECTION ACTIVE</div>
+        </div>
       </div>
 
-      <div class="chat-input-area">
-        <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Send Image">📎</button>
-        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
-        <textarea id="messageInput" placeholder="Type message..." rows="1" onkeydown="handleMsgKeydown(event)" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" onclick="sendMessage()" title="Send">▶</button>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" id="tabFriends" onclick="switchSidebarTab('friends')">CONTACTS</button>
+        <button class="sidebar-tab" id="tabRequests" onclick="switchSidebarTab('requests')">
+          REQUESTS
+          <span class="badge" id="reqBadge" style="display:none">0</span>
+        </button>
+        <button class="sidebar-tab" id="tabSearch" onclick="switchSidebarTab('search')">FIND USERS</button>
+      </div>
+
+      <!-- Add Friend / Search by Username -->
+      <div class="sidebar-search" id="searchArea">
+        <div class="search-input-wrap">
+          <input type="text" id="addFriendInput" placeholder="Enter exact username...">
+          <button onclick="sendFriendRequest()">+ ADD</button>
+        </div>
+      </div>
+      
+      <!-- Global User Search -->
+      <div class="sidebar-search" id="globalSearchArea" style="display:none;">
+        <div class="search-input-wrap">
+          <input type="text" id="globalSearchInput" placeholder="Search all users..." oninput="handleGlobalSearch()">
+        </div>
+      </div>
+
+      <!-- Contact List -->
+      <div class="contact-list" id="contactList">
+        <div class="empty-state">No contacts yet.<br>Add a friend or search for users.</div>
+      </div>
+
+      <!-- Request List -->
+      <div class="contact-list" id="requestList" style="display:none;">
+        <div class="empty-state">No pending requests.</div>
+      </div>
+      
+      <!-- Search Results -->
+      <div class="contact-list" id="searchResultList" style="display:none;">
+        <div class="empty-state">Search for users by username above.</div>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div class="chat-area" id="chatArea">
+      <div class="chat-empty" id="chatEmpty">
+        <div class="big-icon">🔒</div>
+        <p>SELECT A CONTACT TO BEGIN</p>
+        <p style="font-size:10px; color:var(--text-dim)">All messages sync globally in real-time</p>
+      </div>
+
+      <div id="chatView" style="display:none; flex-direction:column; height:100%;">
+        <div class="chat-header">
+          <button class="back-btn" onclick="goBackToSidebar()">←</button>
+          <div class="avatar" id="chatAvatar">💀</div>
+          <div>
+            <div class="chat-user-name" id="chatUserName">-</div>
+            <div class="chat-user-status" id="chatUserStatus">-</div>
+          </div>
+        </div>
+
+        <div class="messages-container" id="messagesContainer"></div>
+        
+        <div class="new-msg-indicator" id="newMsgIndicator" onclick="scrollToBottom()">
+          ↓ New messages
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+          <span id="typingText">User is typing...</span>
+        </div>
+
+        <div class="chat-input-area">
+          <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Send Image">📎</button>
+          <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+          <textarea id="messageInput" placeholder="Type message..." rows="1" onkeydown="handleMsgKeydown(event)" oninput="handleTyping()"></textarea>
+          <button class="send-btn" onclick="sendMessage()" title="Send">▶</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1076,39 +1264,36 @@ body {
 <div class="modal-overlay" id="configModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('configModal')">✕</button>
-    <h3>⚙ FIREBASE CONFIG</h3>
+    <h3>⚙ DATABASE CONFIG</h3>
     <p style="font-size:10px; color:var(--text-secondary); margin-bottom:16px; line-height:1.8;">
-      To enable global cross-network chat, enter your Firebase Realtime Database URL.<br>
-      1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green-primary)">Firebase Console</a><br>
-      2. Create a project → Realtime Database<br>
-      3. Set rules to allow read/write (for testing)<br>
-      4. Copy the database URL below
+      Change your Firebase Realtime Database URL. This will require re-login.
     </p>
     <div class="form-group">
       <label>> Database URL</label>
       <input type="text" id="firebaseUrl" placeholder="https://your-project.firebaseio.com">
     </div>
-    <button class="auth-btn" onclick="saveFirebaseConfig()">🔗 CONNECT DATABASE</button>
-    <div style="margin-top:12px; font-size:10px; color:var(--text-dim); text-align:center;">
-      Leave empty to use local-only mode (same browser tabs can chat).
-    </div>
+    <button class="auth-btn" onclick="saveFirebaseConfig()">🔗 UPDATE & RECONNECT</button>
   </div>
 </div>
 
 <script>
 // ============================================================
-// DARK CHAT — Complete Chat Application
-// Firebase Realtime DB for global + localStorage fallback
+// DARK CHAT — Global Real-Time Chat Application
+// Firebase Realtime Database for cross-device communication
 // ============================================================
 
 // ---- Firebase Config ----
 let FIREBASE_URL = localStorage.getItem('dc_firebase_url') || '';
 
 // ---- State ----
-let currentUser = null;  // { username, password, avatar, status }
+let currentUser = null;
 let activeChatUser = null;
+let currentChatId = null;
 let syncInterval = null;
-let lastMessageCounts = {};
+let typingTimeout = null;
+let renderedMessageIds = new Set();
+let allUsersCache = {};
+let isConnected = false;
 
 // ---- Utility Functions ----
 function generateId() {
@@ -1157,107 +1342,188 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
-// ---- Firebase REST API helpers ----
+function updateConnectionStatus(status) {
+  const bar = document.getElementById('connectionBar');
+  const text = document.getElementById('connectionText');
+  bar.className = 'connection-bar ' + status;
+  if (status === 'connected') {
+    text.textContent = 'CONNECTED TO GLOBAL NETWORK';
+    isConnected = true;
+  } else if (status === 'disconnected') {
+    text.textContent = 'DISCONNECTED — RETRYING...';
+    isConnected = false;
+  } else {
+    text.textContent = 'CONNECTING...';
+  }
+}
+
+// ---- Firebase REST API ----
 async function fbGet(path) {
-  if (!FIREBASE_URL) return localGet(path);
+  if (!FIREBASE_URL) {
+    throw new Error('Firebase not configured');
+  }
   try {
-    const r = await fetch(`${FIREBASE_URL}/${path}.json`);
-    if (!r.ok) throw new Error('FB read fail');
-    return await r.json();
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    updateConnectionStatus('connected');
+    return data;
   } catch(e) {
-    console.warn('Firebase GET failed, using local:', e);
-    return localGet(path);
+    console.error('Firebase GET error:', e);
+    updateConnectionStatus('disconnected');
+    throw e;
   }
 }
 
 async function fbSet(path, data) {
-  if (!FIREBASE_URL) return localSet(path, data);
+  if (!FIREBASE_URL) {
+    throw new Error('Firebase not configured');
+  }
   try {
     const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
       method: 'PUT',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error('FB write fail');
-    // Mirror to local
-    localSet(path, data);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    updateConnectionStatus('connected');
     return true;
   } catch(e) {
-    console.warn('Firebase SET failed, using local:', e);
-    return localSet(path, data);
+    console.error('Firebase SET error:', e);
+    updateConnectionStatus('disconnected');
+    throw e;
   }
 }
 
 async function fbPush(path, data) {
-  if (!FIREBASE_URL) return localPush(path, data);
+  if (!FIREBASE_URL) {
+    throw new Error('Firebase not configured');
+  }
   try {
     const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error('FB push fail');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const result = await r.json();
-    // Mirror to local
-    localPush(path, data);
+    updateConnectionStatus('connected');
     return result.name;
   } catch(e) {
-    console.warn('Firebase PUSH failed, using local:', e);
-    return localPush(path, data);
+    console.error('Firebase PUSH error:', e);
+    updateConnectionStatus('disconnected');
+    throw e;
   }
 }
 
 async function fbDelete(path) {
-  if (!FIREBASE_URL) return localDelete(path);
+  if (!FIREBASE_URL) {
+    throw new Error('Firebase not configured');
+  }
   try {
     await fetch(`${FIREBASE_URL}/${path}.json`, { method: 'DELETE' });
-    localDelete(path);
+    updateConnectionStatus('connected');
   } catch(e) {
-    localDelete(path);
+    console.error('Firebase DELETE error:', e);
+    updateConnectionStatus('disconnected');
+    throw e;
   }
 }
 
-// ---- LocalStorage DB (fallback / same-browser mode) ----
-function localGet(path) {
-  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
-  const parts = path.split('/').filter(Boolean);
-  let node = db;
-  for (const p of parts) {
-    if (node == null || typeof node !== 'object') return null;
-    node = node[p];
+async function fbUpdate(path, data) {
+  if (!FIREBASE_URL) {
+    throw new Error('Firebase not configured');
   }
-  return node !== undefined ? node : null;
+  try {
+    const r = await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    updateConnectionStatus('connected');
+    return true;
+  } catch(e) {
+    console.error('Firebase UPDATE error:', e);
+    updateConnectionStatus('disconnected');
+    throw e;
+  }
 }
 
-function localSet(path, data) {
-  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
-  const parts = path.split('/').filter(Boolean);
-  let node = db;
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!node[parts[i]] || typeof node[parts[i]] !== 'object') node[parts[i]] = {};
-    node = node[parts[i]];
+// ---- Setup & Configuration ----
+async function setupFirebase() {
+  const url = document.getElementById('setupFirebaseUrl').value.trim().replace(/\/+$/, '');
+  const errEl = document.getElementById('setupError');
+  const sucEl = document.getElementById('setupSuccess');
+  const btn = document.getElementById('setupBtn');
+  
+  errEl.textContent = '';
+  sucEl.textContent = '';
+  
+  if (!url) {
+    errEl.textContent = '⚠ Please enter a Firebase Database URL';
+    return;
   }
-  node[parts[parts.length - 1]] = data;
-  localStorage.setItem('dc_db', JSON.stringify(db));
-  return true;
+  
+  if (!url.startsWith('https://') || !url.includes('firebaseio.com')) {
+    errEl.textContent = '⚠ Invalid URL. Must be https://your-project.firebaseio.com';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ VERIFYING...';
+  
+  try {
+    // Test connection by trying to read
+    const testUrl = `${url}/.json`;
+    const response = await fetch(testUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Connection failed: ${response.status}`);
+    }
+    
+    // Success! Save and proceed
+    FIREBASE_URL = url;
+    localStorage.setItem('dc_firebase_url', url);
+    
+    sucEl.textContent = '✓ Connected successfully! Loading...';
+    
+    setTimeout(() => {
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('authScreen').classList.add('active');
+    }, 1000);
+    
+  } catch(e) {
+    errEl.textContent = `⚠ Connection failed: ${e.message}. Check URL and database rules.`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔗 CONNECT & VERIFY';
+  }
 }
 
-function localPush(path, data) {
-  const id = generateId();
-  localSet(path + '/' + id, data);
-  return id;
+function openConfigModal() {
+  document.getElementById('configModal').classList.add('active');
+  document.getElementById('firebaseUrl').value = FIREBASE_URL;
 }
 
-function localDelete(path) {
-  const db = JSON.parse(localStorage.getItem('dc_db') || '{}');
-  const parts = path.split('/').filter(Boolean);
-  let node = db;
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!node[parts[i]]) return;
-    node = node[parts[i]];
+function saveFirebaseConfig() {
+  const url = document.getElementById('firebaseUrl').value.trim().replace(/\/+$/, '');
+  if (url && (!url.startsWith('https://') || !url.includes('firebaseio.com'))) {
+    showToast('Invalid Firebase URL', true);
+    return;
   }
-  delete node[parts[parts.length - 1]];
-  localStorage.setItem('dc_db', JSON.stringify(db));
+  FIREBASE_URL = url;
+  localStorage.setItem('dc_firebase_url', url);
+  closeModal('configModal');
+  handleLogout();
+  showToast('Database config updated. Please login again.');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
 }
 
 // ---- Auth Functions ----
@@ -1278,6 +1544,8 @@ async function handleRegister() {
   const pass2 = document.getElementById('regPassConfirm').value;
   const errEl = document.getElementById('regError');
   const sucEl = document.getElementById('regSuccess');
+  const btn = document.getElementById('regBtn');
+  
   errEl.textContent = '';
   sucEl.textContent = '';
 
@@ -1286,73 +1554,118 @@ async function handleRegister() {
   if (pass.length < 4) { errEl.textContent = '⚠ Password must be 4+ characters'; return; }
   if (pass !== pass2) { errEl.textContent = '⚠ Passwords do not match'; return; }
 
-  // Check if username exists
-  const existing = await fbGet(`users/${user}`);
-  if (existing) { errEl.textContent = '⚠ Username already taken'; return; }
+  btn.disabled = true;
+  btn.textContent = '⏳ CREATING...';
 
-  // Create user
-  await fbSet(`users/${user}`, {
-    username: user,
-    password: hashPassword(pass),
-    avatar: '',
-    status: 'Online',
-    created: Date.now(),
-    lastSeen: Date.now()
-  });
+  try {
+    // Check if username exists
+    const existing = await fbGet(`users/${user}`);
+    if (existing) { 
+      errEl.textContent = '⚠ Username already taken'; 
+      return; 
+    }
 
-  sucEl.textContent = '✓ Identity created. You may now login.';
-  document.getElementById('regUser').value = '';
-  document.getElementById('regPass').value = '';
-  document.getElementById('regPassConfirm').value = '';
+    // Create user
+    await fbSet(`users/${user}`, {
+      username: user,
+      password: hashPassword(pass),
+      avatar: '',
+      status: 'Online',
+      created: Date.now(),
+      lastSeen: Date.now()
+    });
+
+    sucEl.textContent = '✓ Identity created successfully! You may now login.';
+    document.getElementById('regUser').value = '';
+    document.getElementById('regPass').value = '';
+    document.getElementById('regPassConfirm').value = '';
+    
+  } catch(e) {
+    errEl.textContent = `⚠ Registration failed: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔐 CREATE IDENTITY 🔐';
+  }
 }
 
 async function handleLogin() {
   const user = document.getElementById('loginUser').value.trim().toLowerCase();
   const pass = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  
   errEl.textContent = '';
 
   if (!user || !pass) { errEl.textContent = '⚠ Enter username and password'; return; }
 
-  const userData = await fbGet(`users/${user}`);
-  if (!userData) { errEl.textContent = '⚠ User not found'; return; }
-  if (userData.password !== hashPassword(pass)) { errEl.textContent = '⚠ Invalid password'; return; }
+  btn.disabled = true;
+  btn.textContent = '⏳ AUTHENTICATING...';
 
-  currentUser = userData;
-  localStorage.setItem('dc_current_user', user);
+  try {
+    const userData = await fbGet(`users/${user}`);
+    if (!userData) { 
+      errEl.textContent = '⚠ User not found'; 
+      return; 
+    }
+    if (userData.password !== hashPassword(pass)) { 
+      errEl.textContent = '⚠ Invalid password'; 
+      return; 
+    }
 
-  // Update lastSeen
-  await fbSet(`users/${user}/lastSeen`, Date.now());
+    currentUser = userData;
+    localStorage.setItem('dc_current_user', user);
 
-  enterApp();
+    // Update lastSeen
+    await fbUpdate(`users/${user}`, { lastSeen: Date.now() });
+
+    enterApp();
+    
+  } catch(e) {
+    errEl.textContent = `⚠ Login failed: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ INITIATE ACCESS ⚡';
+  }
 }
 
 function handleLogout() {
   if (syncInterval) clearInterval(syncInterval);
   currentUser = null;
   activeChatUser = null;
+  currentChatId = null;
+  renderedMessageIds.clear();
   localStorage.removeItem('dc_current_user');
-  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('authScreen').classList.add('active');
   document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('chatEmpty').style.display = 'flex';
 }
 
 async function autoLogin() {
   const savedUser = localStorage.getItem('dc_current_user');
-  if (!savedUser) return;
-  const userData = await fbGet(`users/${savedUser}`);
-  if (userData) {
-    currentUser = userData;
-    await fbSet(`users/${savedUser}/lastSeen`, Date.now());
-    enterApp();
+  if (!savedUser) return false;
+  
+  try {
+    const userData = await fbGet(`users/${savedUser}`);
+    if (userData) {
+      currentUser = userData;
+      await fbUpdate(`users/${savedUser}`, { lastSeen: Date.now() });
+      return true;
+    }
+  } catch(e) {
+    console.warn('Auto-login failed:', e);
   }
+  return false;
 }
 
-function enterApp() {
-  document.getElementById('authScreen').style.display = 'none';
+async function enterApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('authScreen').classList.remove('active');
   document.getElementById('appContainer').classList.add('active');
   updateMyProfile();
-  loadContacts();
-  loadRequests();
+  await loadContacts();
+  await loadRequests();
+  await loadAllUsers();
   startSync();
   showToast(`Access granted: ${currentUser.username}`);
 }
@@ -1391,38 +1704,119 @@ async function handleAvatarChange(event) {
   }
   const reader = new FileReader();
   reader.onload = async function(e) {
-    currentUser.avatar = e.target.result;
-    await fbSet(`users/${currentUser.username}/avatar`, currentUser.avatar);
-    updateMyProfile();
-    showToast('Avatar updated');
+    try {
+      currentUser.avatar = e.target.result;
+      await fbUpdate(`users/${currentUser.username}`, { avatar: currentUser.avatar });
+      updateMyProfile();
+      showToast('Avatar updated');
+    } catch(err) {
+      showToast('Failed to update avatar', true);
+    }
   };
   reader.readAsDataURL(file);
 }
 
 async function saveProfile() {
   const status = document.getElementById('profileStatus').value.trim();
-  currentUser.status = status;
-  await fbSet(`users/${currentUser.username}/status`, status);
-  updateMyProfile();
-  closeModal('profileModal');
-  showToast('Profile saved');
+  try {
+    currentUser.status = status;
+    await fbUpdate(`users/${currentUser.username}`, { status: status });
+    updateMyProfile();
+    closeModal('profileModal');
+    showToast('Profile saved');
+  } catch(e) {
+    showToast('Failed to save profile', true);
+  }
 }
 
-function openConfigModal() {
-  document.getElementById('configModal').classList.add('active');
-  document.getElementById('firebaseUrl').value = FIREBASE_URL;
+// ---- Global User Search ----
+async function loadAllUsers() {
+  try {
+    const users = await fbGet('users') || {};
+    allUsersCache = users;
+  } catch(e) {
+    console.warn('Failed to load users:', e);
+  }
 }
 
-function saveFirebaseConfig() {
-  const url = document.getElementById('firebaseUrl').value.trim().replace(/\/+$/, '');
-  FIREBASE_URL = url;
-  localStorage.setItem('dc_firebase_url', url);
-  closeModal('configModal');
-  showToast(url ? 'Firebase connected: Global mode active' : 'Local mode active');
+function handleGlobalSearch() {
+  const query = document.getElementById('globalSearchInput').value.trim().toLowerCase();
+  const list = document.getElementById('searchResultList');
+  
+  if (!query) {
+    list.innerHTML = '<div class="empty-state">Search for users by username above.</div>';
+    return;
+  }
+  
+  const results = [];
+  for (const [username, data] of Object.entries(allUsersCache)) {
+    if (username === currentUser.username) continue;
+    if (username.includes(query)) {
+      results.push({ username, ...data });
+    }
+  }
+  
+  if (results.length === 0) {
+    list.innerHTML = `<div class="empty-state">No users found matching "${escapeHtml(query)}"</div>`;
+    return;
+  }
+  
+  renderSearchResults(results);
 }
 
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
+async function renderSearchResults(results) {
+  const list = document.getElementById('searchResultList');
+  const friends = await fbGet('friends') || {};
+  
+  let html = '';
+  for (const user of results) {
+    const chatId = getChatId(currentUser.username, user.username);
+    const friendship = friends[chatId];
+    
+    let btnHtml = '';
+    if (friendship && friendship.status === 'accepted') {
+      btnHtml = `<button class="add-btn" disabled>✓ FRIENDS</button>`;
+    } else if (friendship && friendship.status === 'pending') {
+      btnHtml = `<button class="add-btn" disabled>⏳ PENDING</button>`;
+    } else {
+      btnHtml = `<button class="add-btn" onclick="sendFriendRequestTo('${user.username}')">+ ADD</button>`;
+    }
+    
+    const isOnline = user.lastSeen && (Date.now() - user.lastSeen < 30000);
+    const avatarContent = user.avatar && user.avatar.startsWith('data:')
+      ? `<img src="${user.avatar}" alt="">`
+      : user.username[0].toUpperCase();
+    
+    html += `
+      <div class="search-result-item">
+        <div class="avatar ${isOnline ? 'online' : ''}">${avatarContent}</div>
+        <div class="result-info">
+          <div class="result-name">${escapeHtml(user.username)}</div>
+          <div class="result-status">${isOnline ? '● ONLINE' : 'OFFLINE'}</div>
+        </div>
+        ${btnHtml}
+      </div>
+    `;
+  }
+  
+  list.innerHTML = html;
+}
+
+async function sendFriendRequestTo(targetUsername) {
+  try {
+    const chatId = getChatId(currentUser.username, targetUsername);
+    await fbSet(`friends/${chatId}`, {
+      from: currentUser.username,
+      to: targetUsername,
+      status: 'pending',
+      created: Date.now()
+    });
+    showToast(`Request sent to ${targetUsername}`);
+    handleGlobalSearch(); // Refresh results
+    loadRequests();
+  } catch(e) {
+    showToast('Failed to send request', true);
+  }
 }
 
 // ---- Friend System ----
@@ -1433,79 +1827,112 @@ function getChatId(user1, user2) {
 async function sendFriendRequest() {
   const target = document.getElementById('addFriendInput').value.trim().toLowerCase();
   if (!target) return;
-  if (target === currentUser.username) { showToast('Cannot add yourself', true); return; }
+  if (target === currentUser.username) { 
+    showToast('Cannot add yourself', true); 
+    return; 
+  }
 
-  // Check if user exists
-  const targetUser = await fbGet(`users/${target}`);
-  if (!targetUser) { showToast('User not found', true); return; }
+  try {
+    // Check if user exists
+    const targetUser = await fbGet(`users/${target}`);
+    if (!targetUser) { 
+      showToast('User not found. Check the username.', true); 
+      return; 
+    }
 
-  // Check if already friends
-  const friendship = await fbGet(`friends/${getChatId(currentUser.username, target)}`);
-  if (friendship && friendship.status === 'accepted') { showToast('Already friends', true); return; }
+    const chatId = getChatId(currentUser.username, target);
+    
+    // Check if already friends or pending
+    const friendship = await fbGet(`friends/${chatId}`);
+    if (friendship && friendship.status === 'accepted') { 
+      showToast('Already friends with this user', true); 
+      return; 
+    }
+    if (friendship && friendship.status === 'pending') { 
+      showToast('Request already pending', true); 
+      return; 
+    }
 
-  // Check if request already sent
-  if (friendship && friendship.status === 'pending') { showToast('Request already pending', true); return; }
+    // Send request
+    await fbSet(`friends/${chatId}`, {
+      from: currentUser.username,
+      to: target,
+      status: 'pending',
+      created: Date.now()
+    });
 
-  // Send request
-  await fbSet(`friends/${getChatId(currentUser.username, target)}`, {
-    from: currentUser.username,
-    to: target,
-    status: 'pending',
-    created: Date.now()
-  });
-
-  document.getElementById('addFriendInput').value = '';
-  showToast(`Request sent to ${target}`);
-  loadRequests();
+    document.getElementById('addFriendInput').value = '';
+    showToast(`Friend request sent to ${target}`);
+    loadRequests();
+    
+  } catch(e) {
+    showToast(`Failed: ${e.message}`, true);
+  }
 }
 
 async function acceptRequest(chatId) {
-  await fbSet(`friends/${chatId}/status`, 'accepted');
-  await fbSet(`friends/${chatId}/acceptedAt`, Date.now());
-  showToast('Friend request accepted');
-  loadContacts();
-  loadRequests();
+  try {
+    await fbUpdate(`friends/${chatId}`, { 
+      status: 'accepted',
+      acceptedAt: Date.now()
+    });
+    showToast('Friend request accepted! You can now chat.');
+    await loadContacts();
+    await loadRequests();
+  } catch(e) {
+    showToast('Failed to accept request', true);
+  }
 }
 
 async function declineRequest(chatId) {
-  await fbDelete(`friends/${chatId}`);
-  showToast('Request declined');
-  loadRequests();
+  try {
+    await fbDelete(`friends/${chatId}`);
+    showToast('Request declined');
+    loadRequests();
+  } catch(e) {
+    showToast('Failed to decline request', true);
+  }
 }
 
 async function loadContacts() {
-  const allFriends = await fbGet('friends') || {};
-  const contacts = [];
+  try {
+    const allFriends = await fbGet('friends') || {};
+    const contacts = [];
 
-  for (const [chatId, data] of Object.entries(allFriends)) {
-    if (data.status !== 'accepted') continue;
-    if (data.from !== currentUser.username && data.to !== currentUser.username) continue;
-    const friendName = data.from === currentUser.username ? data.to : data.from;
-    const friendData = await fbGet(`users/${friendName}`) || {};
-    const messages = await fbGet(`messages/${chatId}`) || {};
-    const msgArr = Object.values(messages).sort((a,b) => a.timestamp - b.timestamp);
-    const lastMsg = msgArr[msgArr.length - 1];
+    for (const [chatId, data] of Object.entries(allFriends)) {
+      if (data.status !== 'accepted') continue;
+      if (data.from !== currentUser.username && data.to !== currentUser.username) continue;
+      
+      const friendName = data.from === currentUser.username ? data.to : data.from;
+      const friendData = await fbGet(`users/${friendName}`) || {};
+      const messages = await fbGet(`messages/${chatId}`) || {};
+      const msgArr = Object.values(messages).sort((a,b) => a.timestamp - b.timestamp);
+      const lastMsg = msgArr[msgArr.length - 1];
 
-    contacts.push({
-      chatId,
-      username: friendName,
-      avatar: friendData.avatar || '',
-      status: friendData.status || 'Offline',
-      lastSeen: friendData.lastSeen || 0,
-      lastMessage: lastMsg ? (lastMsg.image ? '📷 Image' : lastMsg.text) : '',
-      lastTime: lastMsg ? lastMsg.timestamp : data.acceptedAt || 0,
-      unread: 0
-    });
+      contacts.push({
+        chatId,
+        username: friendName,
+        avatar: friendData.avatar || '',
+        status: friendData.status || 'Offline',
+        lastSeen: friendData.lastSeen || 0,
+        lastMessage: lastMsg ? (lastMsg.image ? '📷 Image' : lastMsg.text) : '',
+        lastTime: lastMsg ? lastMsg.timestamp : data.acceptedAt || 0,
+        unread: 0
+      });
+    }
+
+    contacts.sort((a,b) => b.lastTime - a.lastTime);
+    renderContacts(contacts);
+    
+  } catch(e) {
+    console.warn('Failed to load contacts:', e);
   }
-
-  contacts.sort((a,b) => b.lastTime - a.lastTime);
-  renderContacts(contacts);
 }
 
 function renderContacts(contacts) {
   const list = document.getElementById('contactList');
   if (contacts.length === 0) {
-    list.innerHTML = '<div class="empty-state">No contacts yet.<br>Add a friend to start chatting.</div>';
+    list.innerHTML = '<div class="empty-state">No contacts yet.<br>Use "Find Users" tab to search and add friends.</div>';
     return;
   }
   list.innerHTML = contacts.map(c => {
@@ -1519,7 +1946,7 @@ function renderContacts(contacts) {
         <div class="avatar ${isOnline ? 'online' : ''}">${avatarContent}</div>
         <div class="contact-info">
           <div class="contact-name">${escapeHtml(c.username)}</div>
-          <div class="contact-last-msg">${c.lastMessage ? escapeHtml(c.lastMessage) : '<i style="color:var(--text-dim)">No messages</i>'}</div>
+          <div class="contact-last-msg">${c.lastMessage ? escapeHtml(c.lastMessage) : '<i style="color:var(--text-dim)">No messages yet</i>'}</div>
         </div>
         <div class="contact-time">${c.lastTime ? formatTime(c.lastTime) : ''}</div>
       </div>
@@ -1528,34 +1955,39 @@ function renderContacts(contacts) {
 }
 
 async function loadRequests() {
-  const allFriends = await fbGet('friends') || {};
-  const incoming = [];
-  const outgoing = [];
+  try {
+    const allFriends = await fbGet('friends') || {};
+    const incoming = [];
+    const outgoing = [];
 
-  for (const [chatId, data] of Object.entries(allFriends)) {
-    if (data.status !== 'pending') continue;
-    if (data.to === currentUser.username) {
-      incoming.push({ chatId, ...data });
-    } else if (data.from === currentUser.username) {
-      outgoing.push({ chatId, ...data });
+    for (const [chatId, data] of Object.entries(allFriends)) {
+      if (data.status !== 'pending') continue;
+      if (data.to === currentUser.username) {
+        incoming.push({ chatId, ...data });
+      } else if (data.from === currentUser.username) {
+        outgoing.push({ chatId, ...data });
+      }
     }
-  }
 
-  const badge = document.getElementById('reqBadge');
-  if (incoming.length > 0) {
-    badge.textContent = incoming.length;
-    badge.style.display = 'inline';
-  } else {
-    badge.style.display = 'none';
-  }
+    const badge = document.getElementById('reqBadge');
+    if (incoming.length > 0) {
+      badge.textContent = incoming.length;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
 
-  renderRequests(incoming, outgoing);
+    renderRequests(incoming, outgoing);
+    
+  } catch(e) {
+    console.warn('Failed to load requests:', e);
+  }
 }
 
 function renderRequests(incoming, outgoing) {
   const list = document.getElementById('requestList');
   if (incoming.length === 0 && outgoing.length === 0) {
-    list.innerHTML = '<div class="empty-state">No pending requests.</div>';
+    list.innerHTML = '<div class="empty-state">No pending friend requests.</div>';
     return;
   }
   let html = '';
@@ -1580,7 +2012,7 @@ function renderRequests(incoming, outgoing) {
         <div class="avatar">${r.to[0].toUpperCase()}</div>
         <div class="req-info">
           <div class="req-name">${escapeHtml(r.to)}</div>
-          <div class="req-type">⬆ SENT • PENDING</div>
+          <div class="req-type">⬆ SENT • AWAITING RESPONSE</div>
         </div>
       </div>
     `;
@@ -1591,31 +2023,41 @@ function renderRequests(incoming, outgoing) {
 function switchSidebarTab(tab) {
   document.getElementById('tabFriends').classList.toggle('active', tab === 'friends');
   document.getElementById('tabRequests').classList.toggle('active', tab === 'requests');
+  document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
+  
   document.getElementById('contactList').style.display = tab === 'friends' ? 'block' : 'none';
   document.getElementById('requestList').style.display = tab === 'requests' ? 'block' : 'none';
+  document.getElementById('searchResultList').style.display = tab === 'search' ? 'block' : 'none';
+  
   document.getElementById('searchArea').style.display = tab === 'friends' ? 'block' : 'none';
+  document.getElementById('globalSearchArea').style.display = tab === 'search' ? 'block' : 'none';
+  
+  if (tab === 'search') {
+    loadAllUsers();
+    document.getElementById('globalSearchInput').focus();
+  }
 }
 
-// ---- Chat ----
-let currentChatId = null;
-let renderedMessageIds = new Set();
-
+// ---- Chat System ----
 async function openChat(username, chatId) {
   activeChatUser = username;
   currentChatId = chatId;
   renderedMessageIds.clear();
+  document.getElementById('messagesContainer').innerHTML = '';
 
   document.getElementById('chatEmpty').style.display = 'none';
   document.getElementById('chatView').style.display = 'flex';
-  document.getElementById('chatView').style.flexDirection = 'column';
-  document.getElementById('chatView').style.height = '100%';
 
-  const userData = await fbGet(`users/${username}`) || {};
-  document.getElementById('chatUserName').textContent = username;
-  const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 30000);
-  document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : (userData.lastSeen ? `Last seen ${formatTime(userData.lastSeen)}` : 'Offline');
+  try {
+    const userData = await fbGet(`users/${username}`) || {};
+    document.getElementById('chatUserName').textContent = username;
+    const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 30000);
+    document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : (userData.lastSeen ? `Last seen ${formatTime(userData.lastSeen)}` : 'Offline');
 
-  setAvatarContent('chatAvatar', userData.avatar, username);
+    setAvatarContent('chatAvatar', userData.avatar, username);
+  } catch(e) {
+    document.getElementById('chatUserName').textContent = username;
+  }
 
   // Mark contacts as active
   document.querySelectorAll('.contact-item').forEach(el => {
@@ -1634,49 +2076,69 @@ async function openChat(username, chatId) {
 async function loadMessages() {
   if (!currentChatId) return;
 
-  const messages = await fbGet(`messages/${currentChatId}`) || {};
-  const msgArr = Object.entries(messages).map(([id, msg]) => ({ id, ...msg }));
-  msgArr.sort((a, b) => a.timestamp - b.timestamp);
+  try {
+    const messages = await fbGet(`messages/${currentChatId}`) || {};
+    const msgArr = Object.entries(messages).map(([id, msg]) => ({ id, ...msg }));
+    msgArr.sort((a, b) => a.timestamp - b.timestamp);
 
+    const container = document.getElementById('messagesContainer');
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+    const prevCount = renderedMessageIds.size;
+
+    let hasNewMessages = false;
+
+    msgArr.forEach(msg => {
+      if (renderedMessageIds.has(msg.id)) return;
+      renderedMessageIds.add(msg.id);
+      hasNewMessages = true;
+
+      const isSent = msg.sender === currentUser.username;
+      const div = document.createElement('div');
+      div.className = `message ${isSent ? 'sent' : 'received'}`;
+      div.dataset.id = msg.id;
+
+      let content = '';
+      if (msg.image) {
+        content += `<img class="msg-image" src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
+      }
+      if (msg.text) {
+        content += `<div>${escapeHtml(msg.text)}</div>`;
+      }
+
+      div.innerHTML = `
+        ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}</div>` : ''}
+        <div class="msg-bubble">${content}</div>
+        <div class="msg-time">${formatTime(msg.timestamp)}</div>
+      `;
+      container.appendChild(div);
+    });
+
+    // Handle scrolling for new messages
+    if (hasNewMessages) {
+      if (prevCount === 0) {
+        // First load - scroll to bottom
+        container.scrollTop = container.scrollHeight;
+      } else if (wasAtBottom) {
+        // Was at bottom - keep at bottom
+        container.scrollTop = container.scrollHeight;
+      } else {
+        // Not at bottom - show indicator
+        const lastMsg = msgArr[msgArr.length - 1];
+        if (lastMsg && lastMsg.sender !== currentUser.username) {
+          document.getElementById('newMsgIndicator').style.display = 'block';
+        }
+      }
+    }
+    
+  } catch(e) {
+    console.warn('Failed to load messages:', e);
+  }
+}
+
+function scrollToBottom() {
   const container = document.getElementById('messagesContainer');
-  const wasScrolledToBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-
-  let hasNewMessages = false;
-
-  msgArr.forEach(msg => {
-    if (renderedMessageIds.has(msg.id)) return;
-    renderedMessageIds.add(msg.id);
-    hasNewMessages = true;
-
-    const isSent = msg.sender === currentUser.username;
-    const div = document.createElement('div');
-    div.className = `message ${isSent ? 'sent' : 'received'}`;
-    div.dataset.id = msg.id;
-
-    let content = '';
-    if (msg.image) {
-      content += `<img class="msg-image" src="${msg.image}" alt="shared image" onclick="previewImage(this.src)">`;
-    }
-    if (msg.text) {
-      content += `<div>${escapeHtml(msg.text)}</div>`;
-    }
-
-    div.innerHTML = `
-      ${!isSent ? `<div class="msg-sender">${escapeHtml(msg.sender)}</div>` : ''}
-      <div class="msg-bubble">${content}</div>
-      <div class="msg-time">${formatTime(msg.timestamp)}</div>
-    `;
-    container.appendChild(div);
-  });
-
-  if (hasNewMessages && wasScrolledToBottom) {
-    container.scrollTop = container.scrollHeight;
-  }
-
-  // On first load, always scroll to bottom
-  if (hasNewMessages && msgArr.length === renderedMessageIds.size) {
-    container.scrollTop = container.scrollHeight;
-  }
+  container.scrollTop = container.scrollHeight;
+  document.getElementById('newMsgIndicator').style.display = 'none';
 }
 
 async function sendMessage() {
@@ -1694,18 +2156,28 @@ async function sendMessage() {
 
   input.value = '';
   input.style.height = 'auto';
+  
+  // Clear typing indicator
+  clearTyping();
 
-  await fbPush(`messages/${currentChatId}`, msg);
-  await loadMessages();
-  loadContacts(); // Update last message preview
+  try {
+    await fbPush(`messages/${currentChatId}`, msg);
+    await loadMessages();
+    scrollToBottom();
+    loadContacts(); // Update last message preview
+  } catch(e) {
+    showToast('Failed to send message', true);
+  }
 }
 
 async function handleImageSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (!currentChatId) { showToast('Open a chat first', true); return; }
+  if (!currentChatId) { 
+    showToast('Open a chat first', true); 
+    return; 
+  }
 
-  // Compress if needed (max ~300KB for Firebase)
   if (file.size > 500000) {
     showToast('Image too large. Max 500KB.', true);
     event.target.value = '';
@@ -1720,10 +2192,15 @@ async function handleImageSelect(event) {
       text: '',
       timestamp: Date.now()
     };
-    await fbPush(`messages/${currentChatId}`, msg);
-    await loadMessages();
-    loadContacts();
-    showToast('Image sent');
+    try {
+      await fbPush(`messages/${currentChatId}`, msg);
+      await loadMessages();
+      scrollToBottom();
+      loadContacts();
+      showToast('Image sent');
+    } catch(err) {
+      showToast('Failed to send image', true);
+    }
   };
   reader.readAsDataURL(file);
   event.target.value = '';
@@ -1736,6 +2213,45 @@ function handleMsgKeydown(event) {
   }
 }
 
+// ---- Typing Indicator ----
+async function handleTyping() {
+  autoResize(document.getElementById('messageInput'));
+  
+  if (!currentChatId || !currentUser) return;
+  
+  // Set typing status
+  try {
+    await fbSet(`typing/${currentChatId}/${currentUser.username}`, Date.now());
+  } catch(e) {}
+  
+  // Clear after 3 seconds of no typing
+  if (typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(clearTyping, 3000);
+}
+
+async function clearTyping() {
+  if (!currentChatId || !currentUser) return;
+  try {
+    await fbDelete(`typing/${currentChatId}/${currentUser.username}`);
+  } catch(e) {}
+}
+
+async function checkTypingStatus() {
+  if (!currentChatId || !activeChatUser) return;
+  
+  try {
+    const typingData = await fbGet(`typing/${currentChatId}/${activeChatUser}`);
+    const indicator = document.getElementById('typingIndicator');
+    
+    if (typingData && (Date.now() - typingData < 4000)) {
+      document.getElementById('typingText').textContent = `${activeChatUser} is typing...`;
+      indicator.classList.add('active');
+    } else {
+      indicator.classList.remove('active');
+    }
+  } catch(e) {}
+}
+
 function previewImage(src) {
   document.getElementById('imgPreviewSrc').src = src;
   document.getElementById('imgPreview').classList.add('active');
@@ -1745,6 +2261,8 @@ function goBackToSidebar() {
   document.getElementById('sidebar').classList.remove('hidden');
   activeChatUser = null;
   currentChatId = null;
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('chatEmpty').style.display = 'flex';
 }
 
 // ---- Silent Sync (3-second refresh) ----
@@ -1752,43 +2270,45 @@ function startSync() {
   if (syncInterval) clearInterval(syncInterval);
 
   syncInterval = setInterval(async () => {
-    const indicator = document.getElementById('syncIndicator');
-    indicator.classList.add('syncing');
-
     try {
-      // Update our lastSeen
-      await fbSet(`users/${currentUser.username}/lastSeen`, Date.now());
+      // Update our lastSeen (heartbeat)
+      await fbUpdate(`users/${currentUser.username}`, { lastSeen: Date.now() });
 
       // Reload current chat messages silently
       if (currentChatId) {
         await loadMessages();
+        await checkTypingStatus();
       }
 
-      // Reload contacts (for last message preview)
+      // Reload contacts (for last message preview and online status)
       await loadContacts();
 
       // Reload requests
       await loadRequests();
+      
+      // Refresh all users cache
+      await loadAllUsers();
 
-      // Reload current user data (in case avatar/status changed elsewhere)
+      // Update current user data
       const freshUser = await fbGet(`users/${currentUser.username}`);
       if (freshUser) {
         currentUser = freshUser;
       }
 
-      // Update chat partner status
+      // Update chat partner status if in chat
       if (activeChatUser) {
         const partnerData = await fbGet(`users/${activeChatUser}`);
         if (partnerData) {
           const isOnline = partnerData.lastSeen && (Date.now() - partnerData.lastSeen < 30000);
-          document.getElementById('chatUserStatus').textContent = isOnline ? '● Online' : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
+          document.getElementById('chatUserStatus').textContent = isOnline 
+            ? '● Online' 
+            : `Last seen ${formatTime(partnerData.lastSeen || 0)}`;
         }
       }
+      
     } catch (e) {
       console.warn('Sync error:', e);
     }
-
-    setTimeout(() => indicator.classList.remove('syncing'), 500);
   }, 3000);
 }
 
@@ -1829,26 +2349,41 @@ function initMatrix() {
 }
 
 // ---- Boot Sequence ----
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   initMatrix();
-  autoLogin();
+  
+  // Check if Firebase is configured
+  if (!FIREBASE_URL) {
+    document.getElementById('setupScreen').style.display = 'flex';
+    return;
+  }
+  
+  // Hide setup screen
+  document.getElementById('setupScreen').style.display = 'none';
+  
+  // Try auto-login
+  const loggedIn = await autoLogin();
+  if (loggedIn) {
+    enterApp();
+  } else {
+    document.getElementById('authScreen').classList.add('active');
+  }
 
-  // Enter key on login
+  // Enter key handlers
   document.getElementById('loginPass').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
   document.getElementById('loginUser').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
-
-  // Enter key on register
   document.getElementById('regPassConfirm').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleRegister();
   });
-
-  // Enter key on add friend
   document.getElementById('addFriendInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendFriendRequest();
+  });
+  document.getElementById('setupFirebaseUrl').addEventListener('keydown', e => {
+    if (e.key === 'Enter') setupFirebase();
   });
 
   // Close modals on outside click
@@ -1856,6 +2391,13 @@ window.addEventListener('DOMContentLoaded', () => {
     modal.addEventListener('click', e => {
       if (e.target === modal) modal.classList.remove('active');
     });
+  });
+  
+  // Hide new message indicator when scrolled to bottom
+  document.getElementById('messagesContainer')?.addEventListener('scroll', function() {
+    if (this.scrollHeight - this.scrollTop - this.clientHeight < 80) {
+      document.getElementById('newMsgIndicator').style.display = 'none';
+    }
   });
 });
 </script>
