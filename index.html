@@ -1611,9 +1611,31 @@ async function handleGoogleSignIn() {
     const result = await firebaseAuth.signInWithPopup(googleProvider);
     const googleUser = result.user;
     
-    // Create a username from email
-    const email = googleUser.email;
-    const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    // Safely extract user info with fallbacks
+    const email = googleUser.email || '';
+    const displayName = googleUser.displayName || '';
+    const photoURL = googleUser.photoURL || '';
+    const uid = googleUser.uid;
+    
+    if (!uid) {
+      throw new Error('Google authentication returned no user ID');
+    }
+    
+    // Create a username: try email first, then displayName, then uid
+    let baseUsername = '';
+    if (email) {
+      baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    } else if (displayName) {
+      baseUsername = displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    } else {
+      baseUsername = 'user_' + uid.substring(0, 8).toLowerCase();
+    }
+    
+    // Ensure baseUsername is at least 3 characters
+    if (baseUsername.length < 3) {
+      baseUsername = baseUsername + '_user';
+    }
+    
     let username = baseUsername;
     
     // Check if user already exists with this Google ID
@@ -1621,7 +1643,7 @@ async function handleGoogleSignIn() {
     let existingUser = null;
     
     for (const [uname, udata] of Object.entries(allUsers)) {
-      if (udata.googleId === googleUser.uid) {
+      if (udata.googleId === uid) {
         existingUser = { username: uname, ...udata };
         break;
       }
@@ -1632,7 +1654,10 @@ async function handleGoogleSignIn() {
       currentUser = existingUser;
       localStorage.setItem('dc_current_user', existingUser.username);
       localStorage.setItem('dc_auth_type', 'google');
-      await fbUpdate(`users/${existingUser.username}`, { lastSeen: Date.now() });
+      await fbUpdate(`users/${existingUser.username}`, { 
+        lastSeen: Date.now(),
+        avatar: existingUser.avatar || photoURL
+      });
       enterApp();
     } else {
       // New Google user - create account
@@ -1645,10 +1670,10 @@ async function handleGoogleSignIn() {
       
       const newUser = {
         username: username,
-        password: '', // No password for Google users
+        password: '',
         email: email,
-        googleId: googleUser.uid,
-        avatar: googleUser.photoURL || '',
+        googleId: uid,
+        avatar: photoURL,
         status: 'Online',
         created: Date.now(),
         lastSeen: Date.now(),
