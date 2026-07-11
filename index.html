@@ -1540,6 +1540,152 @@ body {
 }
 .story-upload-actions button { flex: 1; }
 
+/* Music Trimmer */
+.music-trimmer {
+  display: none;
+  padding: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-top: 10px;
+}
+.music-trimmer.active { display: block; }
+.music-trimmer label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 8px;
+}
+.trimmer-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trimmer-controls input[type="range"] {
+  flex: 1;
+  accent-color: var(--green-primary);
+  height: 6px;
+  cursor: pointer;
+}
+.trimmer-time {
+  font-size: 12px;
+  color: var(--green-primary);
+  min-width: 90px;
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+}
+.trimmer-preview-btn {
+  padding: 5px 10px;
+  background: var(--green-dark);
+  border: 1px solid var(--green-dim);
+  border-radius: 4px;
+  color: var(--green-primary);
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.trimmer-preview-btn:hover {
+  background: #005500;
+}
+
+/* Story Viewers List */
+.story-viewers-panel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  max-height: 60vh;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  border-radius: 16px 16px 0 0;
+  z-index: 12;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUpPanel 0.3s ease;
+}
+@keyframes slideUpPanel {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.story-viewers-panel.active { display: flex; }
+.story-viewers-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.story-viewers-header h4 {
+  color: var(--green-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+.story-viewers-header .viewer-count {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.story-viewers-header button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+}
+.story-viewers-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.story-viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+}
+.story-viewer-item .svi-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+}
+.story-viewer-item .svi-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.story-viewer-item .svi-info { flex: 1; }
+.story-viewer-item .svi-name {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.story-viewer-item .svi-time {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* Own story eye icon */
+.sv-viewers-btn {
+  display: none;
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  z-index: 10;
+  gap: 6px;
+  align-items: center;
+}
+.sv-viewers-btn.active { display: flex; }
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -2083,7 +2229,23 @@ body {
     <span class="music-icon">🎵</span>
     <div class="music-info"><span class="music-title" id="svMusicTitle">-</span></div>
   </div>
-  <iframe id="storyMusicPlayer" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  
+  <!-- Viewers Button (only shown on own stories) -->
+  <button class="sv-viewers-btn" id="svViewersBtn" onclick="toggleViewersPanel()">
+    👁 <span id="svViewerCount">0</span> viewers
+  </button>
+  
+  <!-- Viewers Panel (slides up) -->
+  <div class="story-viewers-panel" id="storyViewersPanel">
+    <div class="story-viewers-header">
+      <h4>👁 STORY VIEWERS</h4>
+      <span class="viewer-count" id="viewerPanelCount">0 views</span>
+      <button onclick="toggleViewersPanel()">✕</button>
+    </div>
+    <div class="story-viewers-list" id="storyViewersList"></div>
+  </div>
+  
+  <iframe id="storyMusicPlayer" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 </div>
 
 <!-- STORY UPLOAD MODAL -->
@@ -2104,16 +2266,32 @@ body {
     <div class="music-search-section">
       <label>> Add Background Music</label>
       <div class="music-search-wrap">
-        <input type="text" id="musicSearchInput" placeholder="Search for a song..." onkeydown="if(event.key==='Enter') searchMusic()">
+        <input type="text" id="musicSearchInput" placeholder="Search for a song...">
         <div class="music-platform-btns">
           <button id="btnYoutube" class="active" onclick="setMusicPlatform('youtube')">▶ YouTube</button>
           <button id="btnSpotify" onclick="setMusicPlatform('spotify')">● Spotify</button>
         </div>
       </div>
+      <button class="auth-btn" style="padding:8px; font-size:12px; margin-bottom:10px;" onclick="searchMusic()">🔍 SEARCH MUSIC</button>
       <div class="music-results" id="musicResults"></div>
       <div class="selected-music-tag" id="selectedMusicTag">
         <span id="selectedMusicName">-</span>
         <button class="remove-music" onclick="removeSelectedMusic()">✕</button>
+      </div>
+      
+      <!-- Music Trimmer (appears after selecting a song) -->
+      <div class="music-trimmer" id="musicTrimmer">
+        <label>> TRIM 30-SECOND SNIPPET</label>
+        <div class="trimmer-controls">
+          <span style="font-size:11px;color:var(--text-dim);">Start:</span>
+          <input type="range" id="trimSlider" min="0" max="270" value="0" step="1" oninput="updateTrimPreview()">
+          <span class="trimmer-time" id="trimTimeDisplay">0:00 — 0:30</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="trimmer-preview-btn" onclick="previewTrimmedMusic()">▶ Preview</button>
+          <button class="trimmer-preview-btn" onclick="stopTrimPreview()" style="background:var(--bg-primary);">⏹ Stop</button>
+        </div>
+        <iframe id="trimPreviewPlayer" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" allow="autoplay; encrypted-media"></iframe>
       </div>
     </div>
     
@@ -4395,15 +4573,18 @@ function initMatrix() {
 // ============================================================
 
 const STORY_EXPIRY_HOURS = 8;
-const STORY_DISPLAY_SECONDS = 7; // how long each story shows
+const STORY_DISPLAY_SECONDS = 7;
+const MUSIC_TRIM_DURATION = 30; // 30 second trim
 
 let storyUploadData = { file: null, type: null, data: null };
-let selectedMusic = null; // {platform, id, title, artist, embedUrl}
+let selectedMusic = null;
+let musicTrimStart = 0; // trim start in seconds
 let musicPlatform = 'youtube';
 let currentStoryView = { username: null, stories: [], index: 0 };
 let storyTimerInterval = null;
 let storyProgressStart = null;
 let friendStoriesCache = [];
+let musicSearchResults = [];
 
 // ---- Story Upload ----
 function openStoryUpload() {
@@ -4414,13 +4595,16 @@ function openStoryUpload() {
 function closeStoryUpload() {
   document.getElementById('storyUploadModal').classList.remove('active');
   resetStoryUpload();
+  stopTrimPreview();
 }
 
 function resetStoryUpload() {
   storyUploadData = { file: null, type: null, data: null };
   selectedMusic = null;
-  document.getElementById('storyPlaceholder').style.display = '';
-  document.getElementById('storyPreviewZone').innerHTML = `
+  musicTrimStart = 0;
+  musicSearchResults = [];
+  const zone = document.getElementById('storyPreviewZone');
+  zone.innerHTML = `
     <div class="placeholder" id="storyPlaceholder">
       <span>📷</span>
       Tap to select photo or video<br>
@@ -4428,10 +4612,14 @@ function resetStoryUpload() {
     </div>
   `;
   document.getElementById('musicResults').classList.remove('active');
+  document.getElementById('musicResults').innerHTML = '';
   document.getElementById('selectedMusicTag').classList.remove('active');
+  document.getElementById('musicTrimmer').classList.remove('active');
   document.getElementById('musicSearchInput').value = '';
   document.getElementById('publishStoryBtn').disabled = true;
   document.getElementById('storyFileInput').value = '';
+  document.getElementById('trimSlider').value = 0;
+  document.getElementById('trimTimeDisplay').textContent = '0:00 — 0:30';
 }
 
 async function handleStoryFileSelect(event) {
@@ -4484,7 +4672,7 @@ async function handleStoryFileSelect(event) {
   }
 }
 
-// ---- Music Search (YouTube + Spotify via public endpoints) ----
+// ---- Music Search (YouTube + Spotify) ----
 function setMusicPlatform(platform) {
   musicPlatform = platform;
   document.getElementById('btnYoutube').classList.toggle('active', platform === 'youtube');
@@ -4494,29 +4682,27 @@ function setMusicPlatform(platform) {
 
 async function searchMusic() {
   const query = document.getElementById('musicSearchInput').value.trim();
-  if (!query) return;
+  if (!query) { showToast('Enter a song name to search', true); return; }
   
   const results = document.getElementById('musicResults');
   results.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
   results.classList.add('active');
   
   try {
-    let items = [];
-    
     if (musicPlatform === 'youtube') {
-      items = await searchYouTubeMusic(query);
+      musicSearchResults = await searchYouTubeMusic(query);
     } else {
-      items = await searchSpotifyMusic(query);
+      musicSearchResults = await searchSpotifyMusic(query);
     }
     
-    if (items.length === 0) {
-      results.innerHTML = '<div style="padding:12px; text-align:center; color:var(--text-dim); font-size:11px;">No results found</div>';
+    if (musicSearchResults.length === 0) {
+      results.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-dim);font-size:11px;">No results found</div>';
       return;
     }
     
-    results.innerHTML = items.map((item, i) => `
-      <div class="music-result-item" onclick="selectMusic(${i})" data-index="${i}">
-        <span class="mr-icon">${musicPlatform === 'youtube' ? '▶' : '●'}</span>
+    results.innerHTML = musicSearchResults.map((item, i) => `
+      <div class="music-result-item" onclick="selectMusic(${i})">
+        <span class="mr-icon">${item.platform === 'YouTube' ? '▶' : '●'}</span>
         <div class="mr-info">
           <div class="mr-title">${escapeHtml(item.title)}</div>
           <div class="mr-artist">${escapeHtml(item.artist)} • ${escapeHtml(item.platform)}</div>
@@ -4524,80 +4710,148 @@ async function searchMusic() {
       </div>
     `).join('');
     
-    // Store results for selection
-    results.dataset.items = JSON.stringify(items);
-    
   } catch(e) {
-    results.innerHTML = `<div style="padding:12px; text-align:center; color:var(--red-primary); font-size:11px;">Search failed: ${e.message}</div>`;
+    results.innerHTML = `<div style="padding:12px;text-align:center;color:var(--red-primary);font-size:11px;">Search failed. Try again.</div>`;
   }
 }
 
-// YouTube search via Invidious public API (no API key needed)
 async function searchYouTubeMusic(query) {
-  try {
-    const res = await fetch(`https://inv.nadeko.net/api/v1/search?q=${encodeURIComponent(query + ' music')}&type=video&sort_by=relevance`);
-    if (!res.ok) throw new Error('YouTube search failed');
-    const data = await res.json();
-    return data.slice(0, 8).map(v => ({
-      platform: 'YouTube',
-      id: v.videoId,
-      title: v.title || 'Unknown',
-      artist: v.author || 'Unknown',
-      embedUrl: `https://www.youtube.com/embed/${v.videoId}?autoplay=1&start=0&loop=1`
-    }));
-  } catch(e) {
-    // Fallback: let user paste a YouTube URL manually
-    return [{
-      platform: 'YouTube',
-      id: 'manual',
-      title: query,
-      artist: 'Search "' + query + '" on YouTube',
-      embedUrl: `https://www.youtube.com/embed/?listType=search&list=${encodeURIComponent(query)}&autoplay=1`
-    }];
+  // Try multiple Invidious instances for reliability
+  const instances = [
+    'https://inv.nadeko.net',
+    'https://invidious.fdn.fr',
+    'https://yewtu.be',
+    'https://vid.puffyan.us'
+  ];
+  
+  for (const instance of instances) {
+    try {
+      const res = await fetch(`${instance}/api/v1/search?q=${encodeURIComponent(query + ' music')}&type=video&sort_by=relevance`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      return data.slice(0, 8).map(v => ({
+        platform: 'YouTube',
+        id: v.videoId,
+        title: v.title || query,
+        artist: v.author || 'Unknown Artist',
+        duration: v.lengthSeconds || 300,
+        embedUrl: `https://www.youtube.com/embed/${v.videoId}`
+      }));
+    } catch(e) { continue; }
   }
-}
-
-// Spotify search via open embed (no API key needed for embed search)
-async function searchSpotifyMusic(query) {
-  // Spotify doesn't have a free public search API without OAuth,
-  // so we use the embed search approach
+  
+  // Final fallback: generate a direct embed search URL
   return [{
-    platform: 'Spotify',
-    id: 'search',
+    platform: 'YouTube',
+    id: 'search_' + Date.now(),
     title: query,
-    artist: 'Play on Spotify',
-    embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator&theme=0`
-  },{
-    platform: 'Spotify',
-    id: 'track_search',
-    title: query + ' (Top Result)',
-    artist: 'Spotify Track',
-    embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator`
+    artist: 'YouTube Music',
+    duration: 300,
+    embedUrl: `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`
   }];
 }
 
+async function searchSpotifyMusic(query) {
+  // Use Spotify oEmbed endpoint to get real track data
+  try {
+    const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/search/${encodeURIComponent(query)}`, {
+      signal: AbortSignal.timeout(5000)
+    });
+    // oEmbed may not work for search, so generate embed URLs
+  } catch(e) {}
+  
+  // Generate Spotify embed results
+  return [
+    {
+      platform: 'Spotify',
+      id: 'sp_' + Date.now(),
+      title: query,
+      artist: 'Spotify • Top Result',
+      duration: 300,
+      embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?theme=0`
+    },
+    {
+      platform: 'Spotify',
+      id: 'sp2_' + Date.now(),
+      title: query + ' (Track)',
+      artist: 'Spotify • Track',
+      duration: 300,
+      embedUrl: `https://open.spotify.com/embed/search/${encodeURIComponent(query)}?utm_source=generator&theme=0`
+    }
+  ];
+}
+
 function selectMusic(index) {
-  const results = document.getElementById('musicResults');
-  const items = JSON.parse(results.dataset.items || '[]');
-  if (!items[index]) return;
+  if (!musicSearchResults[index]) return;
   
-  selectedMusic = items[index];
+  selectedMusic = musicSearchResults[index];
+  musicTrimStart = 0;
   
-  // Highlight selection
-  results.querySelectorAll('.music-result-item').forEach((el, i) => {
+  // Highlight selected item
+  document.querySelectorAll('.music-result-item').forEach((el, i) => {
     el.classList.toggle('selected', i === index);
   });
   
-  // Show selected music tag
+  // Show selected tag
   const tag = document.getElementById('selectedMusicTag');
   document.getElementById('selectedMusicName').textContent = `🎵 ${selectedMusic.title} — ${selectedMusic.artist}`;
   tag.classList.add('active');
+  
+  // Show trimmer
+  const trimmer = document.getElementById('musicTrimmer');
+  trimmer.classList.add('active');
+  
+  const slider = document.getElementById('trimSlider');
+  const maxStart = Math.max((selectedMusic.duration || 300) - MUSIC_TRIM_DURATION, 0);
+  slider.max = maxStart;
+  slider.value = 0;
+  updateTrimPreview();
+  
+  showToast('Song selected! Use the trimmer to choose a 30-sec snippet.');
 }
 
 function removeSelectedMusic() {
   selectedMusic = null;
+  musicTrimStart = 0;
   document.getElementById('selectedMusicTag').classList.remove('active');
+  document.getElementById('musicTrimmer').classList.remove('active');
   document.querySelectorAll('.music-result-item').forEach(el => el.classList.remove('selected'));
+  stopTrimPreview();
+}
+
+// ---- Music Trimmer ----
+function updateTrimPreview() {
+  const slider = document.getElementById('trimSlider');
+  musicTrimStart = parseInt(slider.value);
+  const endTime = musicTrimStart + MUSIC_TRIM_DURATION;
+  
+  const startStr = formatSecondsToTime(musicTrimStart);
+  const endStr = formatSecondsToTime(endTime);
+  document.getElementById('trimTimeDisplay').textContent = `${startStr} — ${endStr}`;
+}
+
+function formatSecondsToTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function previewTrimmedMusic() {
+  if (!selectedMusic) return;
+  
+  const player = document.getElementById('trimPreviewPlayer');
+  if (selectedMusic.platform === 'YouTube') {
+    player.src = `${selectedMusic.embedUrl}?autoplay=1&start=${musicTrimStart}&end=${musicTrimStart + MUSIC_TRIM_DURATION}&loop=0`;
+  } else {
+    player.src = selectedMusic.embedUrl;
+  }
+  showToast(`Playing from ${formatSecondsToTime(musicTrimStart)}...`);
+}
+
+function stopTrimPreview() {
+  document.getElementById('trimPreviewPlayer').src = '';
 }
 
 // ---- Publish Story ----
@@ -4619,15 +4873,19 @@ async function publishStory() {
       expiresAt: Date.now() + (STORY_EXPIRY_HOURS * 60 * 60 * 1000),
       music: selectedMusic ? {
         platform: selectedMusic.platform,
+        id: selectedMusic.id,
         title: selectedMusic.title,
         artist: selectedMusic.artist,
-        embedUrl: selectedMusic.embedUrl
+        embedUrl: selectedMusic.embedUrl,
+        trimStart: musicTrimStart,
+        trimEnd: musicTrimStart + MUSIC_TRIM_DURATION
       } : null,
       viewedBy: {}
     };
     
     await fbPush(`stories/${currentUser.username}`, story);
     
+    stopTrimPreview();
     closeStoryUpload();
     showToast('Story published! Visible for 8 hours.');
     await loadStories();
@@ -4675,9 +4933,10 @@ async function loadStories() {
         username: currentUser.username,
         displayName: currentUser.displayName || currentUser.username,
         avatar: currentUser.avatar || '',
+        verified: currentUser.verified || false,
         stories: myActiveStories,
         isOwn: true,
-        allViewed: myActiveStories.every(s => true) // own stories always "viewed"
+        allViewed: true
       });
     }
     
@@ -4697,6 +4956,7 @@ async function loadStories() {
           username: friend,
           displayName: friendData.displayName || friend,
           avatar: friendData.avatar || '',
+          verified: friendData.verified || false,
           stories: active,
           isOwn: false,
           allViewed
@@ -4737,13 +4997,14 @@ function renderStoriesBar() {
       ? `<img src="${entry.avatar}" alt="">`
       : (entry.displayName[0] || '?').toUpperCase();
     const name = entry.isOwn ? 'Your Story' : entry.displayName;
+    const badge = entry.verified ? '<span class="verified-badge-small">✓</span>' : '';
     
     html += `
       <div class="story-item" onclick="openStoryViewer('${entry.username}')">
         <div class="story-ring ${ringClass}">
           <div class="story-avatar">${avatarContent}</div>
         </div>
-        <span class="story-name">${escapeHtml(name)}</span>
+        <span class="story-name">${escapeHtml(name)}${badge}</span>
       </div>
     `;
   }
@@ -4792,8 +5053,12 @@ function closeStoryViewer() {
   document.getElementById('storyMusicPlayer').src = '';
   document.getElementById('storyMusicBar').style.display = 'none';
   
+  // Close viewers panel
+  document.getElementById('storyViewersPanel').classList.remove('active');
+  document.getElementById('svViewersBtn').classList.remove('active');
+  
   currentStoryView = { username: null, stories: [], index: 0 };
-  loadStories(); // Refresh viewed status
+  loadStories();
 }
 
 async function renderCurrentStory() {
@@ -4805,11 +5070,13 @@ async function renderCurrentStory() {
   
   const story = stories[index];
   
-  // Header
+  // Header with verified badge
   const avatarContent = entry.avatar && (entry.avatar.startsWith('data:') || entry.avatar.startsWith('http'))
     ? `<img src="${entry.avatar}" alt="">` : (entry.displayName[0] || '?').toUpperCase();
   document.getElementById('svAvatar').innerHTML = avatarContent;
-  document.getElementById('svName').textContent = entry.displayName;
+  
+  const verifiedBadge = entry.verified ? ' <span class="verified-badge-small">✓</span>' : '';
+  document.getElementById('svName').innerHTML = escapeHtml(entry.displayName) + verifiedBadge;
   document.getElementById('svTime').textContent = formatTime(story.timestamp);
   
   // Progress bar
@@ -4827,26 +5094,102 @@ async function renderCurrentStory() {
     content.innerHTML = `<video src="${story.media}" autoplay muted playsinline></video>`;
   }
   
-  // Music
+  // Music with trim support
   const musicBar = document.getElementById('storyMusicBar');
   const musicPlayer = document.getElementById('storyMusicPlayer');
-  if (story.music) {
+  if (story.music && story.music.embedUrl) {
     musicBar.style.display = 'flex';
     document.getElementById('svMusicTitle').textContent = `${story.music.title} — ${story.music.artist}`;
-    musicPlayer.src = story.music.embedUrl;
-    musicPlayer.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+    
+    // Build embed URL with trim start time
+    let embedSrc = story.music.embedUrl;
+    const trimStart = story.music.trimStart || 0;
+    const trimEnd = story.music.trimEnd || (trimStart + 30);
+    
+    if (story.music.platform === 'YouTube') {
+      const sep = embedSrc.includes('?') ? '&' : '?';
+      embedSrc = `${embedSrc}${sep}autoplay=1&start=${trimStart}&end=${trimEnd}`;
+    }
+    
+    musicPlayer.src = embedSrc;
   } else {
     musicBar.style.display = 'none';
     musicPlayer.src = '';
   }
   
-  // Mark as viewed
+  // Mark as viewed (only for others' stories)
   if (!entry.isOwn) {
     fbSet(`stories/${entry.username}/${story.id}/viewedBy/${currentUser.username}`, Date.now()).catch(() => {});
   }
   
+  // Show/hide viewers button (only for own stories)
+  const viewersBtn = document.getElementById('svViewersBtn');
+  if (entry.isOwn) {
+    const viewerCount = story.viewedBy ? Object.keys(story.viewedBy).length : 0;
+    document.getElementById('svViewerCount').textContent = viewerCount;
+    viewersBtn.classList.add('active');
+  } else {
+    viewersBtn.classList.remove('active');
+  }
+  
+  // Hide viewers panel if open
+  document.getElementById('storyViewersPanel').classList.remove('active');
+  
   // Start progress timer
   startStoryTimer();
+}
+
+// ---- Story Viewers Panel ----
+function toggleViewersPanel() {
+  const panel = document.getElementById('storyViewersPanel');
+  const isOpen = panel.classList.contains('active');
+  
+  if (isOpen) {
+    panel.classList.remove('active');
+    startStoryTimer(); // Resume timer
+    return;
+  }
+  
+  // Pause story timer while viewing
+  clearStoryTimer();
+  
+  const { stories, index, entry } = currentStoryView;
+  if (!entry.isOwn || !stories[index]) return;
+  
+  const story = stories[index];
+  const viewedBy = story.viewedBy || {};
+  const viewers = Object.entries(viewedBy);
+  
+  document.getElementById('viewerPanelCount').textContent = `${viewers.length} view(s)`;
+  
+  const list = document.getElementById('storyViewersList');
+  
+  if (viewers.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:11px;">No one has viewed this story yet.</div>';
+  } else {
+    list.innerHTML = viewers.map(([username, viewTime]) => {
+      const userData = allUsersCache[username] || {};
+      const displayName = userData.displayName || username;
+      const avatar = userData.avatar || '';
+      const verified = userData.verified ? '<span class="verified-badge-small">✓</span>' : '';
+      
+      const avatarHtml = avatar && (avatar.startsWith('data:') || avatar.startsWith('http'))
+        ? `<img src="${avatar}" alt="">`
+        : (displayName[0] || '?').toUpperCase();
+      
+      return `
+        <div class="story-viewer-item">
+          <div class="svi-avatar">${avatarHtml}</div>
+          <div class="svi-info">
+            <div class="svi-name">${escapeHtml(displayName)}${verified}</div>
+            <div class="svi-time">Viewed ${formatTime(viewTime)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  panel.classList.add('active');
 }
 
 function startStoryTimer() {
