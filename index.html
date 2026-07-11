@@ -2270,6 +2270,178 @@ body {
   25%, 75% { box-shadow: 0 0 0 2px var(--green-primary), 0 0 15px var(--green-glow); }
 }
 
+/* ===== VIEW USER PROFILE MODAL ===== */
+.user-profile-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  z-index: 1500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.user-profile-modal.active { display: flex; }
+.user-profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 380px;
+  max-width: 95vw;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+.upc-header {
+  padding: 30px 20px 20px;
+  text-align: center;
+  position: relative;
+  background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-card));
+  border-bottom: 1px solid var(--border-color);
+}
+.upc-close {
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 30px; height: 30px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.upc-close:hover { color: var(--red-primary); border-color: var(--red-primary); }
+.upc-avatar {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--green-dark);
+  margin: 0 auto 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.upc-avatar:hover {
+  border-color: var(--green-primary);
+  box-shadow: 0 0 20px var(--green-glow);
+}
+.upc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.upc-avatar .no-avatar-text {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-align: center;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.upc-display-name {
+  font-size: 22px;
+  color: #fff;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.upc-username {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.upc-online-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  margin-top: 8px;
+  letter-spacing: 1px;
+}
+.upc-online-badge.online {
+  background: rgba(0,255,65,0.1);
+  color: var(--green-primary);
+  border: 1px solid var(--green-dark);
+}
+.upc-online-badge.offline {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-dim);
+  border: 1px solid var(--border-color);
+}
+.upc-body {
+  padding: 16px 20px;
+}
+.upc-field {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.upc-field:last-child { border-bottom: none; }
+.upc-field .upc-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.upc-field .upc-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.upc-field .upc-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+.upc-actions {
+  padding: 16px 20px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border-color);
+}
+.upc-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.upc-actions button:hover {
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+.upc-actions button.primary {
+  background: var(--green-dark);
+  border-color: var(--green-dim);
+  color: var(--green-primary);
+}
+
+/* Chat header clickable areas */
+.chat-header .clickable-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+.chat-header .clickable-profile:hover .chat-user-name {
+  text-decoration: underline;
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
@@ -2738,10 +2910,12 @@ body {
       <div id="chatView" style="display:none; flex-direction:column; height:100%;">
         <div class="chat-header">
           <button class="back-btn" onclick="goBackToSidebar()">←</button>
-          <div class="avatar" id="chatAvatar">💀</div>
-          <div style="flex:1;">
-            <div class="chat-user-name" id="chatUserName">-</div>
-            <div class="chat-user-status" id="chatUserStatus">-</div>
+          <div class="clickable-profile" onclick="viewUserProfile(activeChatUser)">
+            <div class="avatar" id="chatAvatar">💀</div>
+            <div style="flex:1; min-width:0;">
+              <div class="chat-user-name" id="chatUserName">-</div>
+              <div class="chat-user-status" id="chatUserStatus">-</div>
+            </div>
           </div>
           <button class="call-btn" onclick="initiateCall()" title="Audio Call">📞</button>
         </div>
@@ -2955,6 +3129,46 @@ body {
     <div class="story-upload-actions">
       <button class="auth-btn" style="background: var(--bg-input); border-color: var(--border-color); color: var(--text-secondary);" onclick="closeStoryUpload()">CANCEL</button>
       <button class="auth-btn" onclick="publishStory()" id="publishStoryBtn" disabled>🚀 PUBLISH STORY</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW USER PROFILE MODAL -->
+<div class="user-profile-modal" id="userProfileModal" onclick="if(event.target===this) closeUserProfile()">
+  <div class="user-profile-card">
+    <div class="upc-header">
+      <button class="upc-close" onclick="closeUserProfile()">✕</button>
+      <div class="upc-avatar" id="upcAvatar" onclick="openProfilePicFullscreen(event)">💀</div>
+      <div class="upc-display-name" id="upcDisplayName">-</div>
+      <div class="upc-username" id="upcUsername">@-</div>
+      <div class="upc-online-badge offline" id="upcOnlineBadge">OFFLINE</div>
+    </div>
+    <div class="upc-body">
+      <div class="upc-field">
+        <span class="upc-icon">📝</span>
+        <div>
+          <div class="upc-label">STATUS</div>
+          <div class="upc-value" id="upcStatus">-</div>
+        </div>
+      </div>
+      <div class="upc-field">
+        <span class="upc-icon">📅</span>
+        <div>
+          <div class="upc-label">JOINED</div>
+          <div class="upc-value" id="upcJoined">-</div>
+        </div>
+      </div>
+      <div class="upc-field">
+        <span class="upc-icon">🕐</span>
+        <div>
+          <div class="upc-label">LAST SEEN</div>
+          <div class="upc-value" id="upcLastSeen">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="upc-actions">
+      <button onclick="closeUserProfile(); openChat(viewingProfileUser, getChatId(currentUser.username, viewingProfileUser));" class="primary">💬 Message</button>
+      <button onclick="closeUserProfile(); initiateCall();">📞 Call</button>
     </div>
   </div>
 </div>
@@ -5271,6 +5485,85 @@ async function checkTypingStatus() {
 function previewImage(src) {
   document.getElementById('imgPreviewSrc').src = src;
   document.getElementById('imgPreview').classList.add('active');
+}
+
+// ---- View User Profile ----
+let viewingProfileUser = null;
+
+async function viewUserProfile(username) {
+  if (!username) return;
+  viewingProfileUser = username;
+  
+  const modal = document.getElementById('userProfileModal');
+  modal.classList.add('active');
+  
+  try {
+    const userData = await fbGet(`users/${username}`) || {};
+    
+    const displayName = userData.displayName || username;
+    const avatar = userData.avatar || '';
+    const verified = userData.verified || false;
+    const status = userData.status || 'No status set';
+    const created = userData.created || 0;
+    const lastSeen = userData.lastSeen || 0;
+    const isOnline = lastSeen && (Date.now() - lastSeen < 30000);
+    
+    // Avatar
+    const avatarEl = document.getElementById('upcAvatar');
+    if (avatar && (avatar.startsWith('data:') || avatar.startsWith('http'))) {
+      avatarEl.innerHTML = `<img src="${avatar}" alt="Profile Photo">`;
+      avatarEl.dataset.hasPic = 'true';
+      avatarEl.dataset.picSrc = avatar;
+    } else {
+      avatarEl.innerHTML = `<span class="no-avatar-text">${displayName[0] ? displayName[0].toUpperCase() : '?'}</span>`;
+      avatarEl.dataset.hasPic = 'false';
+    }
+    
+    // Display Name with verified badge
+    const badge = verified ? ' <span class="verified-badge">✓</span>' : '';
+    document.getElementById('upcDisplayName').innerHTML = escapeHtml(displayName) + badge;
+    
+    // Username
+    document.getElementById('upcUsername').textContent = '@' + username;
+    
+    // Online badge
+    const onlineBadge = document.getElementById('upcOnlineBadge');
+    if (isOnline) {
+      onlineBadge.textContent = '● ONLINE';
+      onlineBadge.className = 'upc-online-badge online';
+    } else {
+      onlineBadge.textContent = 'OFFLINE';
+      onlineBadge.className = 'upc-online-badge offline';
+    }
+    
+    // Status
+    document.getElementById('upcStatus').textContent = status;
+    
+    // Joined date
+    document.getElementById('upcJoined').textContent = created 
+      ? new Date(created).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'Unknown';
+    
+    // Last seen
+    document.getElementById('upcLastSeen').textContent = isOnline ? 'Active now' : (lastSeen ? formatTime(lastSeen) : 'Unknown');
+    
+  } catch(e) {
+    document.getElementById('upcDisplayName').textContent = username;
+    document.getElementById('upcUsername').textContent = '@' + username;
+  }
+}
+
+function closeUserProfile() {
+  document.getElementById('userProfileModal').classList.remove('active');
+  viewingProfileUser = null;
+}
+
+function openProfilePicFullscreen(event) {
+  event.stopPropagation();
+  const avatarEl = document.getElementById('upcAvatar');
+  if (avatarEl.dataset.hasPic === 'true' && avatarEl.dataset.picSrc) {
+    previewImage(avatarEl.dataset.picSrc);
+  }
 }
 
 function goBackToSidebar() {
